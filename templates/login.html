@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Masuk</title>
+  <style>
+    :root {
+      --primary-bg: #ffffff;
+      --secondary-bg: #f7f7f7;
+      --primary-text: #1f2937;
+      --secondary-text: #6b7280;
+      --border-color: #e5e7eb;
+      --accent-color: #4c1d95;
+      --accent-color-dark: #3730a3;
+      --shadow-color: rgba(15, 23, 42, 0.08);
+      --button-bg: #111827;
+      --button-text: #ffffff;
+      --accent-text: #ffffff;
+    }
+
+    :root.theme-dark {
+      --primary-bg: #1f2937;
+      --secondary-bg: #0f172a;
+      --primary-text: #f8fafc;
+      --secondary-text: #cbd5f5;
+      --border-color: rgba(148, 163, 184, 0.35);
+      --accent-color: #facc15;
+      --accent-color-dark: #f59e0b;
+      --shadow-color: rgba(8, 11, 22, 0.45);
+      --button-bg: #facc15;
+      --button-text: #1f2937;
+      --accent-text: #1f2937;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      margin: 0;
+      background-color: #0b1118;
+      background-image:
+        linear-gradient(180deg, rgba(8, 12, 18, 0.82) 0%, rgba(8, 12, 18, 0.62) 100%),
+        url('/img/yuji.gif');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+      color: var(--primary-text);
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    main { max-width: 960px; margin: 8vh auto; display: flex; flex-direction: column; gap: 24px; padding: 0 16px; }
+
+    .login-actions { display: flex; justify-content: flex-end; margin-bottom: -8px; }
+
+    .theme-toggle { border: 2px solid var(--border-color); border-radius: 999px; background: var(--primary-bg); color: var(--primary-text); width: 42px; height: 42px; display: grid; place-items: center; cursor: pointer; font-size: 18px; transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease; box-shadow: 4px 4px 0px rgba(17,17,17,0.12); }
+    .theme-toggle:hover { transform: translateY(-2px); box-shadow: 6px 6px 0px rgba(17,17,17,0.15); }
+    .theme-toggle:active { transform: translate(1px,1px); box-shadow: none; }
+
+    .box, .templates-card { background: var(--primary-bg); padding: 24px; border-radius: 12px; box-shadow: 0 10px 30px var(--shadow-color); transition: background 0.2s ease, box-shadow 0.2s ease; }
+
+    h1 { font-size: 20px; margin: 0 0 12px; color: var(--primary-text); }
+    p { margin: 0 0 16px; color: var(--secondary-text); }
+
+    .row { display:flex; flex-direction:column; gap:8px; margin-bottom: 12px; }
+    label { font-weight: 500; color: var(--secondary-text); }
+    input[type=password] { padding: 10px 12px; border:1px solid var(--border-color); border-radius: 8px; font-size: 14px; background: var(--primary-bg); color: var(--primary-text); transition: border 0.2s ease, box-shadow 0.2s ease; }
+    input[type=password]:focus { outline: none; border-color: var(--accent-color); box-shadow: 0 0 0 3px rgba(76,29,149,0.15); }
+
+    .btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:10px 14px; border:2px solid var(--button-bg); border-radius:8px; font-weight:600; background: var(--button-bg); color: var(--button-text); box-shadow:4px 4px 0px rgba(17,17,17,0.15); cursor:pointer; transition: transform 0.15s ease, box-shadow 0.15s ease; }
+    .btn:hover { transform: translateY(-2px); box-shadow:6px 6px 0 rgba(17,17,17,0.18); }
+    .btn:active { transform: translate(1px,1px); box-shadow:none; }
+
+    .error { color:#b91c1c; background: rgba(248, 113, 113, 0.2); border:1px solid rgba(248, 113, 113, 0.4); padding:8px 12px; border-radius:8px; margin-bottom:12px; }
+
+    .templates-card h2 { margin:0 0 12px; font-size:18px; font-weight:600; color: var(--primary-text); }
+    .templates-card p { margin:0 0 20px; color: var(--secondary-text); font-size:14px; }
+    .template-list { display:flex; flex-wrap:wrap; gap:12px; }
+    .template-item { flex:1 1 220px; background: var(--primary-bg); border:1px solid var(--border-color); border-radius:10px; padding:16px; display:flex; flex-direction:column; gap:12px; box-shadow:0 6px 18px var(--shadow-color); transition: background 0.2s ease, box-shadow 0.2s ease; }
+    .template-item h3 { margin:0; font-size:16px; font-weight:600; color: var(--primary-text); }
+    .template-item img { width:100%; border-radius:8px; border:1px solid var(--border-color); object-fit:cover; max-height:160px; }
+    .download-link { display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:10px 12px; border-radius:8px; border:2px solid var(--button-bg); background: var(--button-bg); color: var(--button-text); font-weight:600; text-decoration:none; box-shadow:4px 4px 0 rgba(17,17,17,0.15); transition:transform 0.15s ease, box-shadow 0.15s ease; }
+    .download-link:hover { transform:translateY(-2px); box-shadow:6px 6px 0 rgba(17,17,17,0.18); }
+    .download-link:active { transform:translate(1px,1px); box-shadow:none; }
+
+    @media (max-width: 640px) {
+      main { margin: 6vh auto; }
+      .template-item { flex:1 1 100%; }
+    }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <script>
+    // Prevent clickjacking
+    if (window.top !== window.self) { window.top.location = window.self.location; }
+  </script>
+  <script>
+    (function(){
+      try {
+        const STORAGE_KEY = 'portal_theme';
+        const stored = localStorage.getItem(STORAGE_KEY);
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (stored === 'dark' || (!stored && prefersDark)) {
+          document.documentElement.classList.add('theme-dark');
+        }
+      } catch (err) {
+        console.warn('Gagal menginisialisasi tema:', err);
+      }
+    })();
+  </script>
+</head>
+<body>
+  <main>
+    <div class="login-actions">
+      <button class="theme-toggle" type="button" id="loginThemeToggle" aria-label="Ganti tema"><span aria-hidden="true">🌙</span></button>
+    </div>
+    <div class="box">
+      <h1>Masuk</h1>
+      <p>Masukkan password untuk mengakses halaman ini.</p>
+      {% if error %}<div class="error">{{ error }}</div>{% endif %}
+      <form method="post" action="/login">
+        <input type="hidden" name="next" value="{{ next_url or '/' }}" />
+        <div class="row">
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" autofocus required />
+        </div>
+        <button class="btn" type="submit">Masuk</button>
+      </form>
+    </div>
+
+    <section class="templates-card">
+      <h2>DOWNLOAD FILE TEMPLATE</h2>
+      <p>Gunakan tautan berikut untuk mengunduh file template yang sering dibutuhkan.</p>
+      <div class="template-list">
+        <div class="template-item">
+          <h3>SPPD Halaman 2</h3>
+          <img src="/img/CONTOH SPPD HAL 2-1.jpg" alt="Preview SPPD Halaman 2">
+          <a class="download-link" href="/pdf_files/CONTOH_SPPD_HAL_2.pdf" download>Unduh File</a>
+        </div>
+        <div class="template-item">
+          <h3>Berita Acara Pra Construction Meeting</h3>
+          <img src="/img/BERITA_ACARA PRA CONSTRUCTION MEETING-1.jpg" alt="Preview Berita Acara Pra Construction Meeting">
+          <a class="download-link" href="/pdf_files/BERITA_ACARA%20PRA%20CONSTRUCTION%20MEETING.pdf" download>Unduh File</a>
+        </div>
+        <div class="template-item">
+          <h3>Berita Acara Titik Nol</h3>
+          <img src="/img/BERITA ACARA TITIK NOL-1.jpg" alt="Preview Berita Acara Titik Nol">
+          <a class="download-link" href="/pdf_files/BERITA%20ACARA%20TITIK%20NOL.pdf" download>Unduh File</a>
+        </div>
+        <div class="template-item">
+          <h3>Daftar Hadir Rapat</h3>
+          <img src="/img/CONTOH DAFTAR HADIR RAPAT-1.jpg" alt="Preview Daftar Hadir Rapat">
+          <a class="download-link" href="/pdf_files/CONTOH%20DAFTAR%20HADIR%20RAPAT.pdf" download>Unduh File</a>
+        </div>
+        <div class="template-item">
+          <h3>Form Survey</h3>
+          <img src="/img/CONTOH FORM SURVEY.png" alt="Preview Form Survey">
+          <a class="download-link" href="/pdf_files/TEMPLATE%20FORM%20SURVEY.pdf" download>Unduh File</a>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script>
+    (function(){
+      const STORAGE_KEY = 'portal_theme';
+      const root = document.documentElement;
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+      const toggleBtn = document.getElementById('loginThemeToggle');
+
+      const getStored = () => { try { return localStorage.getItem(STORAGE_KEY); } catch (_) { return null; } };
+      const setStored = (value) => { try { localStorage.setItem(STORAGE_KEY, value); } catch (_) {} };
+      const updateIcon = (mode) => {
+        if (!toggleBtn) return;
+        const icon = toggleBtn.querySelector('span');
+        if (icon) icon.textContent = mode === 'dark' ? '☀️' : '🌙';
+        toggleBtn.setAttribute('aria-label', mode === 'dark' ? 'Aktifkan tema terang' : 'Aktifkan tema gelap');
+      };
+      const applyTheme = (mode, persist = true) => {
+        const isDark = mode === 'dark';
+        root.classList.toggle('theme-dark', isDark);
+        updateIcon(mode);
+        if (persist) setStored(mode);
+      };
+
+      document.addEventListener('DOMContentLoaded', () => {
+        const stored = getStored();
+        const initial = stored || (root.classList.contains('theme-dark') ? 'dark' : (prefersDark.matches ? 'dark' : 'light'));
+        applyTheme(initial, false);
+
+        if (toggleBtn) {
+          toggleBtn.addEventListener('click', () => {
+            const next = root.classList.contains('theme-dark') ? 'light' : 'dark';
+            applyTheme(next);
+          });
+        }
+
+        const handleSystemThemeChange = (event) => {
+          if (!getStored()) {
+            applyTheme(event.matches ? 'dark' : 'light', false);
+          }
+        };
+
+        if (prefersDark.addEventListener) {
+          prefersDark.addEventListener('change', handleSystemThemeChange);
+        } else if (prefersDark.addListener) {
+          prefersDark.addListener(handleSystemThemeChange);
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

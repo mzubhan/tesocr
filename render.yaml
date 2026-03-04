@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: tesocr
+    runtime: docker
+    plan: free
+    autoDeployTrigger: commit
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
+    envVars:
+      - key: APP_SECRET
+        generateValue: true
+      - key: APP_PASSWORD
+        sync: false
+      - key: SESSION_TTL_HOURS
+        value: "12"

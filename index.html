@@ -1,0 +1,3094 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal Pembuatan SPPD</title>
+    
+    <!-- Mengimpor font dari Google Fonts untuk tampilan yang modern -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+JP:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        @font-face {
+            font-family: 'JujutsuKaisen';
+            src: url('font/Jujutsu Kaisen.ttf') format('truetype');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        /* Pengaturan Variabel dan Reset CSS Dasar */
+        :root {
+            --font-body: 'Noto Sans JP', 'Manrope', sans-serif;
+            --font-display: 'Noto Sans JP', 'Manrope', sans-serif;
+            --font-jjk: 'JujutsuKaisen', 'Bebas Neue', 'Noto Sans JP', sans-serif;
+            --primary-bg: #ffffff;
+            --secondary-bg: #f1f3f5;
+            --primary-text: #101418;
+            --secondary-text: #5f6770;
+            --border-color: #d9dde3;
+            --accent-color: #16b9a9;
+            --accent-color-dark: #0f8c80;
+            --accent-soft: rgba(22, 185, 169, 0.12);
+            --aura-strong: rgba(22, 185, 169, 0.65);
+            --aura-soft: rgba(22, 185, 169, 0.22);
+            --danger-color: #c83b3b;
+            --shadow-color: rgba(16, 20, 24, 0.08);
+            --overlay: rgba(12, 14, 18, 0.55);
+            --overlay-soft: rgba(12, 14, 18, 0.35);
+            --pattern-color: rgba(16, 20, 24, 0.03);
+            --border-radius-card: 12px;
+            --border-radius-btn: 8px;
+            --navbar-height: 64px;
+            --button-bg: #16b9a9;
+            --button-text: #ffffff;
+            --accent-text: #ffffff;
+            --page-top: #f7f6f2;
+            --page-bottom: #eef1f4;
+        }
+
+        :root.theme-dark {
+            --primary-bg: #0f141b;
+            --secondary-bg: #0b1118;
+            --primary-text: #f2f4f7;
+            --secondary-text: #a0a7b0;
+            --border-color: rgba(242, 244, 247, 0.12);
+            --accent-color: #25d6c6;
+            --accent-color-dark: #0fa394;
+            --accent-soft: rgba(37, 214, 198, 0.12);
+            --aura-strong: rgba(37, 214, 198, 0.7);
+            --aura-soft: rgba(37, 214, 198, 0.25);
+            --danger-color: #f87171;
+            --shadow-color: rgba(0, 0, 0, 0.45);
+            --overlay: rgba(3, 5, 8, 0.72);
+            --overlay-soft: rgba(3, 5, 8, 0.5);
+            --pattern-color: rgba(255, 255, 255, 0.04);
+            --button-bg: #25d6c6;
+            --button-text: #0b1118;
+            --accent-text: #0b1118;
+            --page-top: #0b1118;
+            --page-bottom: #0f141b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background-color: #0b1118;
+            background-image:
+                linear-gradient(180deg, rgba(8, 12, 18, 0.78) 0%, rgba(8, 12, 18, 0.45) 100%),
+                url('/img/yuji.gif');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            color: var(--primary-text);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* Smooth scrolling */
+        html { scroll-behavior: smooth; }
+
+        .portal-header h1,
+        .card-title {
+            font-family: var(--font-jjk);
+            letter-spacing: 0.04em;
+        }
+
+        /* Top Navbar */
+        .navbar {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: var(--navbar-height);
+            background: var(--primary-bg);
+            border-bottom: 2px solid var(--border-color);
+            box-shadow: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 1100;
+            transition: transform 0.2s ease; /* untuk auto-hide saat scroll */
+        }
+        .navbar.hidden { transform: translateY(-100%); }
+        .navbar .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--primary-text); font-weight: 600; }
+        .navbar .brand img { height: 40px; width: 40px; object-fit: contain; border-radius: 8px; }
+        .navbar .menu { display: flex; align-items: center; gap: 18px; }
+        .navbar .menu a { color: var(--secondary-text); text-decoration: none; font-weight: 600; font-size: 0.85rem; }
+        .navbar .menu a:hover { color: var(--primary-text); }
+        .navbar .nav-actions { display: flex; align-items: center; gap: 10px; }
+        .navbar .logout-link { color: var(--button-text); background: var(--button-bg); padding: 8px 12px; border-radius: 8px; font-weight: 600; text-decoration: none; border: 1px solid var(--accent-color-dark); box-shadow: none; transition: background 0.15s ease, color 0.15s ease; }
+        .navbar .logout-link:hover { background: var(--accent-color-dark); }
+        .navbar .logout-link:active { background: var(--accent-color); }
+        .theme-toggle { border: 1px solid var(--border-color); border-radius: 8px; background: var(--primary-bg); color: var(--primary-text); width: 40px; height: 40px; display: grid; place-items: center; cursor: pointer; font-size: 18px; transition: border-color 0.15s ease, background 0.15s ease; box-shadow: none; }
+        .theme-toggle:hover { border-color: var(--accent-color); }
+        .theme-toggle:active { background: var(--secondary-bg); }
+        .navbar-spacer { height: var(--navbar-height); }
+
+        /* Tombol kembali ke atas */
+        .to-top {
+            position: fixed;
+            right: 16px;
+            bottom: 16px;
+            width: 44px; height: 44px;
+            border-radius: 999px;
+            background: var(--button-bg);
+            color: var(--button-text);
+            border: 1px solid var(--accent-color-dark);
+            box-shadow: none;
+            display: flex;
+            align-items: center; justify-content: center;
+            font-size: 18px;
+            cursor: pointer;
+            z-index: 900; /* di bawah modal */
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.2s ease, transform 0.1s ease-out;
+        }
+        .to-top:hover { transform: translateY(-2px); background: var(--accent-color-dark); }
+        .to-top:active { transform: translateY(0); background: var(--accent-color); }
+        .to-top.show { opacity: 1; pointer-events: auto; }
+
+        /* Anchor offset when scrolling */
+        .anchor-target { scroll-margin-top: calc(var(--navbar-height) + 8px); }
+
+        @media (max-width: 768px) {
+            .navbar { justify-content: center; }
+            .navbar .menu { display: none; }
+            .navbar .nav-actions { position: absolute; right: 16px; top: 12px; }
+            .theme-toggle { box-shadow: none; }
+            .navbar .logout-link { box-shadow: none; }
+        }
+
+        /* Kontainer Utama */
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 70px 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header Portal */
+        .portal-header {
+            text-align: center;
+            margin-bottom: 48px;
+            padding: 28px 24px;
+            border-radius: 16px;
+            background: var(--primary-bg);
+            border: 1px solid var(--border-color);
+            border-top: 3px solid var(--accent-color);
+            box-shadow: 0 8px 18px var(--shadow-color);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .portal-header h1 {
+            font-size: 2.35rem;
+            font-weight: 600;
+            color: var(--primary-text);
+            margin-bottom: 10px;
+        }
+        
+        /* Gaya untuk sub-judul baru */
+        .portal-header h2 {
+            font-size: 1.6rem;
+            font-weight: 600;
+            color: var(--primary-text);
+            margin-bottom: 12px;
+        }
+
+        .portal-hero {
+            background-image: linear-gradient(180deg, rgba(7, 10, 14, 0.72) 0%, rgba(7, 10, 14, 0.35) 100%), url('jjko.gif');
+            background-size: cover;
+            background-position: center 35%;
+            background-repeat: no-repeat;
+            color: #f5f7fa;
+        }
+
+        .portal-hero h1 {
+            color: #f5f7fa;
+            text-shadow: 0 10px 26px rgba(6, 10, 14, 0.45);
+        }
+
+        .portal-header h1,
+        .portal-header h2,
+        .card-title {
+            text-transform: none;
+            letter-spacing: 0.02em;
+        }
+
+        .portal-header,
+        .card {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .portal-header::before,
+        .card::before,
+        .form-wrap::before {
+            content: '';
+            position: absolute;
+            left: -20%;
+            right: -20%;
+            top: -8px;
+            height: 20px;
+            background: linear-gradient(90deg, transparent 0%, var(--accent-color) 35%, var(--aura-strong) 50%, var(--accent-color) 65%, transparent 100%);
+            filter: blur(8px);
+            opacity: 0.85;
+            animation: auraFlicker 5s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .portal-header > *,
+        .card > *,
+        .form-wrap > * {
+            position: relative;
+            z-index: 2;
+        }
+
+        .portal-header p {
+            font-size: 1rem;
+            color: var(--secondary-text);
+            max-width: 720px;
+            margin: 0 auto;
+        }
+
+
+        /* Alur Section */
+        #alur-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--primary-text);
+            margin-bottom: 12px;
+            text-align: center;
+        }
+        .alur-section {
+            background: var(--primary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-card);
+            box-shadow: 0 5px 15px var(--shadow-color);
+            padding: 16px;
+            margin-bottom: 32px;
+        }
+        .alur-image-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: zoom-in; }
+        .alur-image-wrap img { max-width: 100%; height: auto; display: block; border-radius: 8px; }
+        .alur-hint { font-size: 0.875rem; color: var(--secondary-text); }
+
+        /* Grid untuk Kartu Dokumen */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+            gap: 22px;
+        }
+
+        /* Desain Kartu */
+        .card {
+            background-color: var(--primary-bg);
+            border-radius: var(--border-radius-card);
+            border: 1px solid var(--border-color);
+            border-top: 3px solid var(--accent-color);
+            box-shadow: 0 8px 18px var(--shadow-color);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -40%;
+            width: 40%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent-color), transparent);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px var(--shadow-color);
+            border-color: var(--accent-color);
+        }
+
+        .card:hover::after {
+            opacity: 1;
+            animation: inkSweep 1.8s ease-in-out;
+        }
+
+        .card-image {
+            position: relative; /* Diperlukan untuk menempatkan overlay */
+            cursor: pointer; /* Mengubah kursor menjadi bentuk tangan */
+            height: 190px; /* Batasi tinggi preview agar tidak terlalu besar */
+            overflow: hidden; /* Sembunyikan bagian yang terpotong saat cover */
+            border-bottom: 1px solid var(--border-color);
+            background: var(--secondary-bg);
+        }
+
+        .card-image::after {
+            content: '';
+            position: absolute;
+            inset: -40% 0;
+            background: linear-gradient(120deg, transparent 0%, var(--accent-soft) 50%, transparent 100%);
+            transform: translateX(-120%);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .card-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* Pertahankan rasio, isi area, crop jika perlu */
+            display: block;
+            background-color: var(--secondary-bg); /* Warna placeholder jika gambar gagal dimuat */
+            transition: filter 0.3s ease;
+        }
+
+        /* Overlay yang muncul saat hover di gambar */
+        .card-image .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--overlay-soft); /* Gelap dengan transparansi */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none; /* Agar tidak mengganggu klik */
+        }
+
+        .card-image:hover .overlay {
+            opacity: 1; /* Tampilkan overlay saat hover */
+        }
+
+        .card-image:hover img {
+            filter: brightness(0.8); /* Buat gambar sedikit lebih gelap */
+        }
+
+        .card-image:hover::after {
+            opacity: 1;
+            animation: scanLine 1.4s ease;
+        }
+
+        .card-image .overlay svg {
+            width: 48px;
+            height: 48px;
+            fill: white;
+        }
+
+        .card-content {
+            padding: 22px 18px;
+            text-align: center;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-title {
+            font-size: 1.125rem; /* 18px */
+            font-weight: 700;
+            color: var(--primary-text);
+            margin-bottom: 16px;
+            min-height: 54px; /* Memberi ruang agar tinggi judul sama */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .card-title::after {
+            content: '';
+            display: block;
+            width: 42px;
+            height: 2px;
+            background: var(--accent-color);
+            margin: 10px auto 0;
+            opacity: 0.6;
+        }
+
+        .card-buttons {
+            margin-top: auto; /* Mendorong tombol ke bagian bawah kartu */
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        /* Desain Tombol */
+        .btn {
+            padding: 10px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-btn);
+            font-size: 0.875rem;
+            font-weight: 600;
+            font-family: var(--font-body);
+            cursor: pointer;
+            box-shadow: 0 1px 2px var(--shadow-color);
+            transition: transform 0.15s ease-out, box-shadow 0.15s ease-out, background 0.2s ease, border-color 0.15s ease;
+            flex: 1;
+            background-color: var(--primary-bg);
+            color: var(--primary-text);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 2px var(--shadow-color);
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px var(--shadow-color);
+        }
+
+        .btn-download {
+            background: var(--secondary-bg);
+            color: var(--primary-text);
+            border-color: var(--border-color);
+        }
+
+        .btn-download:hover {
+            background: var(--primary-bg);
+            border-color: var(--accent-color);
+        }
+
+        .btn-create {
+            background: var(--accent-color);
+            color: var(--accent-text);
+            border-color: var(--accent-color-dark);
+        }
+
+        .btn-create:hover {
+            background: var(--accent-color-dark);
+            box-shadow: 0 0 0 3px var(--accent-soft);
+        }
+        
+        /* Media Queries untuk Tampilan Responsif */
+
+        /* Tablet (lebar <= 1024px) -> 3 kolom */
+        @media (max-width: 1024px) {
+            .card-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        /* Tablet kecil (lebar <= 768px) -> 2 kolom */
+        @media (max-width: 768px) {
+            .container {
+                padding: 40px 20px;
+            }
+            .portal-header {
+                padding: 28px 20px;
+            }
+            .card-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .portal-header h1 {
+                font-size: 2rem;
+            }
+            #global-form-wrap .form-grid {
+                grid-template-columns: 1fr;
+            }
+            #global-form-wrap .form-tools {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
+            }
+            #global-form-wrap .form-tools .btn,
+            #global-form-wrap .form-tools .drop-zone,
+            #global-form-wrap .btn,
+            #global-form-wrap .drop-zone {
+                width: 100%;
+            }
+            #global-form-wrap .drop-zone,
+            .drop-zone {
+                display: none;
+            }
+            .scan-camera-btn { display: inline-flex; width: 100%; }
+            #global-form-wrap .card-buttons {
+                flex-direction: column;
+                gap: 8px;
+            }
+            #global-form-wrap {
+                padding: 16px 12px;
+            }
+            #global-form-wrap .extras-table {
+                display: block;
+                overflow-x: auto;
+            }
+        }
+
+        /* Ponsel (lebar <= 640px) -> 1 kolom */
+        @media (max-width: 640px) {
+            .card-grid {
+                grid-template-columns: 1fr;
+            }
+            .portal-header h1 {
+                font-size: 1.8rem;
+            }
+            .portal-header p {
+                font-size: 0.95rem;
+            }
+             .card-title {
+                min-height: auto; /* Hapus tinggi minimum di ponsel */
+            }
+            /* Sembunyikan gambar dokumen di mobile */
+            .card-image {
+                display: none;
+            }
+        }
+
+        #global-form-wrap .tabs-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        #global-form-wrap .tab-btn {
+            border: 1px solid var(--border-color);
+            background: var(--primary-bg);
+            color: var(--primary-text);
+            padding: 8px 18px;
+            min-width: 44px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease;
+            box-shadow: 0 1px 2px var(--shadow-color);
+        }
+
+        #global-form-wrap .tab-btn.active {
+            background: var(--accent-color);
+            color: var(--accent-text);
+            border-color: transparent;
+            box-shadow: 0 4px 10px var(--shadow-color);
+        }
+
+        #global-form-wrap .tab-btn:not(.active):hover {
+            transform: translateY(-2px);
+        }
+
+        #global-form-wrap .tab-btn.tab-add {
+            background: var(--primary-bg);
+            border: 1px dashed var(--border-color);
+            color: var(--primary-text);
+        }
+
+        #global-form-wrap .tab-btn.tab-add:hover {
+            background: var(--secondary-bg);
+        }
+
+        #global-form-wrap .tab-item {
+            display: inline-flex;
+            align-items: center;
+            position: relative;
+        }
+
+        #global-form-wrap .tab-item .tab-close {
+            border: none;
+            background: transparent;
+            color: var(--secondary-text);
+            cursor: pointer;
+            margin-left: 4px;
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-size: 14px;
+            line-height: 1;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        #global-form-wrap .tab-item:hover .tab-close:not(:disabled) {
+            opacity: 1;
+        }
+
+        #global-form-wrap .tab-item .tab-close:hover:not(:disabled) {
+            background: var(--secondary-bg);
+        }
+
+        #global-form-wrap .tab-item .tab-close:disabled {
+            cursor: default;
+            opacity: 0;
+        }
+
+        #global-form-wrap .form-clear {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 12px;
+        }
+
+        .draft-panel {
+            margin-bottom: 12px;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            background: var(--secondary-bg);
+        }
+
+        .draft-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 8px;
+            color: var(--secondary-text);
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .draft-toolbar {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .draft-title-input {
+            flex: 1 1 260px;
+            min-width: 220px;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            font-family: var(--font-body);
+            background: var(--primary-bg);
+            color: var(--primary-text);
+        }
+
+        .draft-title-input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px var(--accent-soft);
+        }
+
+        .draft-btn {
+            padding: 8px 12px;
+            font-size: 0.82rem;
+        }
+
+        .draft-list {
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 240px;
+            overflow-y: auto;
+            padding-right: 2px;
+        }
+
+        .draft-empty {
+            margin-top: 10px;
+            color: var(--secondary-text);
+            font-size: 0.9rem;
+        }
+
+        .draft-item {
+            border: 1px solid var(--border-color);
+            background: var(--primary-bg);
+            border-radius: 10px;
+            padding: 10px;
+            display: flex;
+            gap: 8px;
+            align-items: flex-start;
+            justify-content: space-between;
+        }
+
+        .draft-item.active {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 2px var(--accent-soft);
+        }
+
+        .draft-main {
+            min-width: 0;
+            flex: 1 1 auto;
+        }
+
+        .draft-title {
+            font-weight: 700;
+            color: var(--primary-text);
+            line-height: 1.3;
+            margin-bottom: 4px;
+            word-break: break-word;
+        }
+
+        .draft-meta {
+            color: var(--secondary-text);
+            font-size: 0.8rem;
+        }
+
+        .draft-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            justify-content: flex-end;
+        }
+
+        /* Gaya untuk Modal Preview PDF */
+        .pdf-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--overlay);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .pdf-modal.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .pdf-modal-content {
+            background-color: var(--primary-bg);
+            width: 90%;
+            height: 90%;
+            max-width: 900px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 12px 24px var(--shadow-color);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .pdf-modal-close {
+            position: absolute;
+            top: 20px;
+            right: -56px; /* Di luar frame sebelah kanan */
+            color: var(--primary-text); /* Hitam sebelum hover */
+            font-size: 48px; /* Lebih besar */
+            font-weight: bold;
+            cursor: pointer;
+            background: none;
+            border: none;
+            line-height: 1;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            transition: color 0.2s ease; /* Hanya warna yang berubah */
+            z-index: 10; /* Pastikan tombol di atas iframe */
+        }
+
+        .pdf-modal-close:hover { 
+            color: var(--danger-color); /* Merah saat hover */
+        }
+
+        .pdf-modal iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            flex-grow: 1;
+        }
+
+        /* Gambar di modal (untuk preview image) */
+        .image-preview {
+            display: none; /* default hidden, tampil saat preview image */
+            width: 100%;
+            height: 100%;
+            object-fit: contain; /* fit to frame */
+            background: var(--primary-bg);
+            flex-grow: 1;
+        }
+
+        /* Form Builder */
+        .form-wrap { position: relative; overflow: visible; margin-top: 12px; padding: 20px; background: var(--primary-bg); border: 1px solid var(--border-color); border-top: 3px solid var(--accent-color); border-radius: 12px; box-shadow: 0 8px 18px var(--shadow-color); }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .form-row { display: flex; flex-direction: column; gap: 6px; }
+        .emp-selector { position: relative; z-index: 6; }
+        .form-actions { position: relative; z-index: 1; }
+        .form-row label { font-size: 0.82rem; color: var(--secondary-text); font-weight: 600; letter-spacing: 0.4px; }
+        .form-row input, .form-row select, .form-row textarea { padding: 10px; border: 1px solid var(--border-color); border-radius: 10px; font-family: var(--font-body); background: var(--primary-bg); color: var(--primary-text); }
+        .form-row input[type="date"], .form-row input.date-input { min-height: 42px; cursor: pointer; }
+        .form-row input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; }
+        .form-row input:focus, .form-row select:focus, .form-row textarea:focus { outline: none; border-color: var(--accent-color); box-shadow: 0 0 0 3px var(--accent-soft); }
+        .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+        .chip { background: var(--secondary-bg); border: 1px solid var(--border-color); padding: 6px 10px; border-radius: 999px; font-size: 0.85rem; color: var(--primary-text); cursor: grab; user-select: none; }
+        .chip:active { cursor: grabbing; }
+        .chip-dragging { opacity: 0.6; }
+        .chip .x { margin-left: 8px; cursor: pointer; }
+        .btn-danger { background: var(--danger-color); color: #ffffff; border-color: var(--danger-color); }
+        .btn-danger:hover { background: #c53a3a; }
+        .section-title { font-weight: 700; margin: 8px 0 4px; }
+        .extras-table { width: 100%; border-collapse: collapse; }
+        .extras-table th, .extras-table td { border: 1px solid var(--border-color); padding: 6px; font-size: 0.9rem; }
+        .extras-actions { margin-top: 8px; }
+        .form-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 12px; }
+        .scan-info { font-size: 0.9rem; color: var(--secondary-text); }
+        .scan-info.warn { color: #b45309; }
+        .scan-info.error { color: var(--danger-color); }
+        .drop-zone { flex: 1 1 260px; border: 2px dashed var(--border-color); border-radius: 14px; padding: 16px; text-align: center; font-size: 0.9rem; color: var(--secondary-text); background: var(--primary-bg); cursor: pointer; transition: border-color 0.2s ease, background 0.2s ease; box-shadow: 0 6px 16px var(--shadow-color); }
+        .drop-zone strong { color: var(--primary-text); }
+        .drop-zone.dragover { border-color: var(--accent-color); background: var(--accent-soft); color: var(--primary-text); }
+        .scan-camera-btn { display: none; }
+
+        /* Suggestions dropdown for employee input */
+        .emp-input-wrap { position: relative; }
+        .suggest-box { position: absolute; top: 100%; left: 0; right: 0; background: var(--primary-bg); border: 1px solid var(--border-color); border-radius: 12px; margin-top: 4px; max-height: 220px; overflow: auto; z-index: 2000; box-shadow: 0 6px 16px var(--shadow-color); }
+        .suggest-item { padding: 10px 12px; cursor: pointer; display: flex; justify-content: space-between; gap: 8px; }
+        .suggest-item small { color: var(--secondary-text); }
+        .suggest-item:hover, .suggest-item.active { background: var(--accent-soft); }
+
+        /* Di layar kecil, posisikan kembali ke dalam frame */
+        @media (max-width: 768px) {
+            .pdf-modal-close { right: 12px; top: 12px; }
+        }
+
+        /* Modal untuk Pilihan Download */
+        .download-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--overlay);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .download-modal.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .download-modal-content {
+            background-color: var(--primary-bg);
+            width: 90%;
+            max-width: 560px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 12px 24px var(--shadow-color);
+            position: relative;
+            padding: 24px;
+        }
+
+        .download-modal-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--primary-text);
+            text-align: center;
+            font-family: var(--font-body);
+            text-transform: none;
+            letter-spacing: 0.02em;
+        }
+
+        .download-option-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        @media (max-width: 480px) {
+            .download-option-grid { grid-template-columns: 1fr; }
+        }
+
+        .download-modal-close {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            color: var(--secondary-text);
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            background: none;
+            border: none;
+            line-height: 1;
+            transition: color 0.2s ease;
+        }
+
+        .download-modal-close:hover { color: var(--primary-text); }
+
+        .option-btn.disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            filter: grayscale(0.2);
+            pointer-events: none;
+        }
+
+        /* Animasi masuk sederhana untuk kartu */
+        @keyframes cardRise {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes auraFlicker {
+            0%, 100% { opacity: 0.55; transform: translateX(-6%); }
+            50% { opacity: 0.95; transform: translateX(6%); }
+        }
+
+        @keyframes inkSweep {
+            0% { transform: translateX(-40%); }
+            50% { transform: translateX(140%); }
+            100% { transform: translateX(140%); }
+        }
+
+        @keyframes scanLine {
+            from { transform: translateX(-120%); }
+            to { transform: translateX(120%); }
+        }
+
+        .portal-header {
+            animation: cardRise 0.5s ease both;
+        }
+
+
+        .card {
+            animation: cardRise 0.5s ease both;
+        }
+
+        .card:nth-child(1) { animation-delay: 0.05s; }
+        .card:nth-child(2) { animation-delay: 0.1s; }
+        .card:nth-child(3) { animation-delay: 0.15s; }
+        .card:nth-child(4) { animation-delay: 0.2s; }
+        .card:nth-child(5) { animation-delay: 0.25s; }
+        .card:nth-child(6) { animation-delay: 0.3s; }
+        .card:nth-child(7) { animation-delay: 0.35s; }
+
+        @media (prefers-reduced-motion: reduce) {
+            .portal-header,
+            .portal-header::before,
+            .card,
+            .card::before,
+            .card::after,
+            .card-image::after,
+            .form-wrap::before {
+                animation: none;
+            }
+        }
+
+    </style>
+    <!-- Quill editor (for Laporan Kesimpulan) -->
+    <link href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
+    <!-- JSZip for bundling multiple files -->
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+    <script>
+        (function(){
+            try {
+                const STORAGE_KEY = 'portal_theme';
+                const stored = localStorage.getItem(STORAGE_KEY);
+                const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                if (stored === 'dark' || (!stored && prefersDark)) {
+                    document.documentElement.classList.add('theme-dark');
+                }
+            } catch (err) {
+                console.warn('Gagal menginisialisasi tema:', err);
+            }
+        })();
+    </script>
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <nav class="navbar">
+        <a href="#" class="brand">
+            <img src="img/logo.png" alt="Logo">
+        </a>
+        <div class="menu">
+            <a href="#berkas-sppd">Berkas SPPD</a>
+            <a href="#berkas-lainnya">Berkas Lainnya</a>
+        </div>
+        <div class="nav-actions">
+            <button class="theme-toggle" type="button" id="themeToggle" aria-label="Ganti tema"><span aria-hidden="true">🌙</span></button>
+            <a class="logout-link" href="/logout">Keluar</a>
+        </div>
+    </nav>
+    <div class="navbar-spacer"></div>
+
+    <div class="container">
+        <!-- Bagian Header Utama -->
+        <header class="portal-header portal-hero">
+            <h1>Portal Pembuatan SPPD Bidang Cipta Karya</h1>
+        </header>
+
+        <!-- Grid untuk Dokumen Utama -->
+        <div id="berkas-sppd" class="anchor-target"></div>
+        <main class="card-grid">
+            
+            <!-- Kartu 1 -->
+            <div class="card" 
+                data-type="rincian_biaya"
+                data-pdf-src="pdf_files/CONTOH_RINCIAN_BIAYA_PDF.pdf"
+                data-contoh-pdf="pdf_files/CONTOH_RINCIAN_BIAYA_PDF.pdf"
+                data-contoh-docx="contoh_files_word/CONTOH RINCIAN BIAYA.xlsx">
+                <div class="card-image">
+                    <img src="img/CONTOH_RINCIAN_BIAYA-1.jpg" alt="Preview Rincian Biaya (Excel)">
+                    <div class="overlay">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352a144 144 0 1 0 0-288 144 144 0 1 0 0 288z"/></svg>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <h2 class="card-title">Rincian Biaya (Excel)</h2>
+                    <div class="card-buttons">
+                        <button class="btn btn-download">Download File</button>
+                        <button class="btn btn-create">Buat Surat</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Kartu 2 -->
+            <div class="card" 
+                data-type="spt"
+                data-pdf-src="pdf_files/CONTOH_SPT_PDF.pdf"
+                data-contoh-pdf="pdf_files/CONTOH_SPT_PDF.pdf"
+                data-contoh-docx="contoh_files_word/CONTOH SPT WORD.docx"
+                data-template-pdf="template_files_pdf/TEMPLATE SPT.pdf"
+                data-template-docx="template_files_word/TEMPLATE SPT.docx">
+                <div class="card-image">
+                    <img src="img/CONTOH SPT PDF-1.jpg" alt="Preview SPT (Surat Perintah Tugas)">
+                    <div class="overlay">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352a144 144 0 1 0 0-288 144 144 0 1 0 0 288z"/></svg>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <h2 class="card-title">SPT (Surat Perintah Tugas)</h2>
+                    <div class="card-buttons">
+                        <button class="btn btn-download">Download File</button>
+                        <button class="btn btn-create">Buat Surat</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kartu 3 -->
+            <div class="card" 
+                data-type="sppd_hal_1"
+                data-pdf-src="pdf_files/CONTOH SPPD HAL 1.pdf"
+                data-contoh-pdf="pdf_files/CONTOH SPPD HAL 1.pdf"
+                data-contoh-docx="contoh_files_word/CONTOH SPPD HAL 1.docx"
+                data-template-pdf="template_files_pdf/TEMPLATE SPPD HAL 1.pdf"
+                data-template-docx="template_files_word/TEMPLATE SPPD HAL 1.docx">
+                <div class="card-image">
+                    <img src="img/CONTOH SPPD HAL 1.png" alt="Preview SPPD Halaman 1">
+                    <div class="overlay">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352a144 144 0 1 0 0-288 144 144 0 1 0 0 288z"/></svg>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <h2 class="card-title">SPPD Halaman 1</h2>
+                    <div class="card-buttons">
+                        <button class="btn btn-download">Download File</button>
+                        <button class="btn btn-create">Buat Surat</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kartu 4: SPPD Halaman 2 -->
+            <div class="card"
+                data-type="sppd_hal_2"
+                data-pdf-src="pdf_files/CONTOH_SPPD_HAL_2.pdf"
+                data-template-pdf="template_files_pdf/TEMPLATE SPPD HAL 2.pdf"
+                data-template-docx="template_files_word/TEMPLATE SPPD HAL 2 BENI.docx"
+                data-template-docx-label="TEMPLATE SPPD HAL 2 BENI"
+                data-template-docx-alt="template_files_word/TEMPLATE SPPD HAL 2 EFAN.docx"
+                data-template-docx-alt-label="TEMPLATE SPPD HAL 2 EFAN">
+                <div class="card-image">
+                    <img src="img/CONTOH SPPD HAL 2-1.jpg" alt="Preview SPPD Halaman 2">
+                    <div class="overlay">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352a144 144 0 1 0 0-288 144 144 0 1 0 0 288z"/></svg>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <h2 class="card-title">SPPD Halaman 2</h2>
+                    <div class="card-buttons">
+                        <button class="btn btn-download">Download File</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kartu 5 -->
+            <div class="card" 
+                data-type="laporan"
+                data-pdf-src="pdf_files/CONTOH LAPORAN PERJALANAN DINAS.pdf"
+                data-contoh-pdf="pdf_files/CONTOH LAPORAN PERJALANAN DINAS.pdf"
+                data-contoh-docx="contoh_files_word/CONTOH LAPORAN PERJALANAN DINAS.docx"
+                data-template-pdf="template_files_pdf/TEMPLATE LAPORAN PERJALANAN DINAS.pdf"
+                data-template-docx="template_files_word/TEMPLATE LAPORAN PERJALANAN DINAS.docx">
+                <div class="card-image">
+                    <img src="img/CONTOH LAPORAN PERJALANAN DINAS-1.jpg" alt="Preview Laporan Perjalanan Dinas">
+                    <div class="overlay">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352a144 144 0 1 0 0-288 144 144 0 1 0 0 288z"/></svg>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <h2 class="card-title">Laporan Perjalanan Dinas</h2>
+                    <div class="card-buttons">
+                        <button class="btn btn-download">Download File</button>
+                        <button class="btn btn-create">Buat Surat</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kartu 5 -->
+            <div class="card" 
+                data-type="nota_dinas"
+                data-pdf-src="pdf_files/CONTOH NOTA DINAS.pdf"
+                data-contoh-pdf="pdf_files/CONTOH NOTA DINAS.pdf"
+                data-contoh-docx="contoh_files_word/CONTOH NOTA DINAS.docx"
+                data-template-pdf="template_files_pdf/TEMPLATE NOTA DINAS.pdf"
+                data-template-docx="template_files_word/TEMPLATE NOTA DINAS.docx">
+                <div class="card-image">
+                    <img src="img/CONTOH NOTA DINAS.jpg" alt="Preview Nota Dinas">
+                    <div class="overlay">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352a144 144 0 1 0 0-288 144 144 0 1 0 0 288z"/></svg>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <h2 class="card-title">Nota Dinas</h2>
+                    <div class="card-buttons">
+                        <button class="btn btn-download">Download File</button>
+                        <button class="btn btn-create">Buat Surat</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Kartu 6 -->
+            <div class="card" 
+                data-type="permohonan_rutin"
+                data-pdf-src="pdf_files/SURAT KPA RUTIN.pdf"
+                data-contoh-pdf="pdf_files/SURAT KPA RUTIN.pdf"
+                data-contoh-docx="contoh_files_word/PERMOHONAN RUTIN.docx"
+                data-template-docx="template_files_word/TEMPLATE PERMOHONAN RUTIN.docx">
+                <div class="card-image">
+                    <img src="img/PERMOHONAN RUTIN.jpg" alt="Preview Permohonan KPA Dana Rutin">
+                    <div class="overlay">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352a144 144 0 1 0 0-288 144 144 0 1 0 0 288z"/></svg>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <h2 class="card-title">Permohonan KPA Dana Rutin</h2>
+                    <div class="card-buttons">
+                        <button class="btn btn-download">Download File</button>
+                        <button class="btn btn-create">Buat Surat</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kartu 7 -->
+            <div class="card" 
+                data-type="pengeluaran_riil"
+                data-pdf-src="pdf_files/CONTOH DAFTAR PENGELUARAN RIIL.pdf"
+                data-contoh-pdf="pdf_files/CONTOH DAFTAR PENGELUARAN RIIL.pdf"
+                data-contoh-docx="contoh_files_word/CONTOH DAFTAR PENGELUARAN RIIL.docx"
+                data-template-pdf="template_files_pdf/TEMPLATE DAFTAR PENGELUARAN RIIL.pdf"
+                data-template-docx="template_files_word/TEMPLATE DAFTAR PENGELUARAN RIIL.docx">
+                <div class="card-image">
+                    <img src="img/CONTOH DAFTAR PENGELUARAN RIIL-1.jpg" alt="Preview Daftar Pengeluaran Riil">
+                    <div class="overlay">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352a144 144 0 1 0 0-288 144 144 0 1 0 0 288z"/></svg>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <h2 class="card-title">Daftar Pengeluaran Riil</h2>
+                    <div class="card-buttons">
+                        <button class="btn btn-download">Download File</button>
+                        <button class="btn btn-create">Buat Surat</button>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Form global akan dirender di sini -->
+        <div id="globalFormAnchor"></div>
+
+        <!-- Bagian Header untuk File Lainnya -->
+        <header id="berkas-lainnya" class="portal-header anchor-target" style="margin-top: 80px;">
+            <h2>File Lainnya</h2>
+        </header>
+
+        <!-- Grid untuk File Lainnya -->
+        <main class="card-grid">
+            
+            <!-- Kartu 1 - Lainnya -->
+            <div class="card" data-pdf-src="pdf_files/BERITA_ACARA PRA CONSTRUCTION MEETING.pdf"
+                 data-download-pdf="pdf_files/BERITA_ACARA PRA CONSTRUCTION MEETING.pdf"
+                 data-download-docx="contoh_files_word/BERITA ACARA PRA CONSTRUCTION MEETING.docx">
+                <div class="card-image">
+                    <img src="img/BERITA_ACARA PRA CONSTRUCTION MEETING-1.jpg" alt="Preview Berita Acara Pra Construction Meeting">
+                    <div class="overlay">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352a144 144 0 1 0 0-288 144 144 0 1 0 0 288z"/></svg>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <h2 class="card-title">Berita Acara Pra Construction Meeting</h2>
+                    <div class="card-buttons">
+                        <button class="btn btn-download">Download PDF</button>
+                        <button class="btn btn-create">Download Word</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kartu 2 - Lainnya -->
+            <div class="card" data-pdf-src="pdf_files/BERITA ACARA TITIK NOL.pdf"
+                 data-download-pdf="pdf_files/BERITA ACARA TITIK NOL.pdf"
+                 data-download-docx="contoh_files_word/BERITA ACARA TITIK NOL.docx">
+                <div class="card-image">
+                    <img src="img/BERITA ACARA TITIK NOL-1.jpg" alt="Preview Berita Acara Titik Nol">
+                    <div class="overlay">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352a144 144 0 1 0 0-288 144 144 0 1 0 0 288z"/></svg>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <h2 class="card-title">Berita Acara Titik Nol</h2>
+                    <div class="card-buttons">
+                        <button class="btn btn-download">Download PDF</button>
+                        <button class="btn btn-create">Download Word</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kartu 3 - Lainnya -->
+            <div class="card" data-pdf-src="pdf_files/CONTOH DAFTAR HADIR RAPAT.pdf"
+                 data-download-pdf="pdf_files/CONTOH DAFTAR HADIR RAPAT.pdf"
+                 data-download-docx="contoh_files_word/DAFTAR HADIR RAPAT WORD.docx">
+                <div class="card-image">
+                    <img src="img/CONTOH DAFTAR HADIR RAPAT-1.jpg" alt="Preview Daftar Hadir Rapat">
+                    <div class="overlay">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352a144 144 0 1 0 0-288 144 144 0 1 0 0 288z"/></svg>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <h2 class="card-title">Daftar Hadir Rapat</h2>
+                    <div class="card-buttons">
+                        <button class="btn btn-download">Download PDF</button>
+                        <button class="btn btn-create">Download Word</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kartu 4 - Lainnya: Form Survey (preview PDF + gambar, download Word) -->
+            <div class="card"
+                 data-pdf-src="pdf_files/TEMPLATE FORM SURVEY.pdf"
+                 data-img-src="img/CONTOH FORM SURVEY.png"
+                 data-download-docx="template_files_word/TEMPLATE FORM SURVEY.docx">
+                <div class="card-image">
+                    <img src="img/CONTOH FORM SURVEY.png" alt="Preview Form Survey">
+                    <div class="overlay">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352a144 144 0 1 0 0-288 144 144 0 1 0 0 288z"/></svg>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <h2 class="card-title">Form Survey</h2>
+                    <div class="card-buttons">
+                        <button class="btn btn-create">Download Word</button>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Modal untuk Preview PDF -->
+    <div class="pdf-modal" id="pdfModal">
+        <div class="pdf-modal-content">
+            <button class="pdf-modal-close" id="closeModalBtn">&times;</button>
+            <iframe id="pdf-iframe" src="" frameborder="0"></iframe>
+            <img id="image-preview" class="image-preview" alt="Preview Gambar" />
+        </div>
+    </div>
+
+    <!-- Modal untuk Pilihan Download Template -->
+    <div class="download-modal" id="downloadModal">
+        <div class="download-modal-content">
+            <button class="download-modal-close" id="downloadCloseBtn">&times;</button>
+            <div class="download-modal-title">Pilih jenis file untuk diunduh</div>
+            <div class="download-option-grid">
+                <button class="btn option-btn" id="btnContohPdf">Download Contoh Dalam PDF</button>
+                <button class="btn option-btn" id="btnContohWord">Download Contoh dalam Word</button>
+                <button class="btn option-btn" id="btnTemplatePdf">Download Template Dalam PDF</button>
+                <button class="btn option-btn" id="btnTemplateWord">Download Template Dalam Word</button>
+                <button class="btn option-btn" id="btnTemplateWordAlt">TEMPLATE SPPD HAL 2 EFAN</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tombol kembali ke atas -->
+    <button id="toTopBtn" class="to-top" title="Kembali ke atas" aria-label="Kembali ke atas">↑</button>
+
+    <script>
+        // JavaScript untuk simulasi interaksi tombol.
+        document.addEventListener('DOMContentLoaded', () => {
+            const THEME_STORAGE_KEY = 'portal_theme';
+            const root = document.documentElement;
+            const themeToggleBtn = document.getElementById('themeToggle');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+
+            const getStoredTheme = () => {
+                try { return localStorage.getItem(THEME_STORAGE_KEY); } catch (_) { return null; }
+            };
+            const setStoredTheme = (value) => {
+                try { localStorage.setItem(THEME_STORAGE_KEY, value); } catch (_) {}
+            };
+            const updateToggleIcon = (mode) => {
+                if (!themeToggleBtn) return;
+                const icon = themeToggleBtn.querySelector('span');
+                if (icon) icon.textContent = mode === 'dark' ? '☀️' : '🌙';
+                themeToggleBtn.setAttribute('aria-label', mode === 'dark' ? 'Aktifkan tema terang' : 'Aktifkan tema gelap');
+            };
+            const applyTheme = (mode, persist = true) => {
+                const isDark = mode === 'dark';
+                root.classList.toggle('theme-dark', isDark);
+                updateToggleIcon(mode);
+                if (persist) setStoredTheme(mode);
+            };
+
+            const storedTheme = getStoredTheme();
+            const initialTheme = storedTheme || (root.classList.contains('theme-dark') ? 'dark' : (prefersDark.matches ? 'dark' : 'light'));
+            applyTheme(initialTheme, false);
+
+            if (themeToggleBtn) {
+                themeToggleBtn.addEventListener('click', () => {
+                    const nextTheme = root.classList.contains('theme-dark') ? 'light' : 'dark';
+                    applyTheme(nextTheme);
+                });
+            }
+
+            const handleSystemThemeChange = (event) => {
+                if (!getStoredTheme()) {
+                    applyTheme(event.matches ? 'dark' : 'light', false);
+                }
+            };
+
+            if (prefersDark.addEventListener) {
+                prefersDark.addEventListener('change', handleSystemThemeChange);
+            } else if (prefersDark.addListener) {
+                prefersDark.addListener(handleSystemThemeChange);
+            }
+
+            const allButtons = document.querySelectorAll('.btn');
+            const navbar = document.querySelector('.navbar');
+            const toTopBtn = document.getElementById('toTopBtn');
+            allButtons.forEach(button => {
+                button.addEventListener('click', (event) => {
+                    const target = event.target;
+                    const label = (target.textContent || '').trim().toLowerCase();
+                    const card = target.closest('.card');
+
+                    if (target.classList.contains('btn-download')) {
+                        // Khusus kontainer "File Lainnya"
+                        if (label.includes('download pdf')) {
+                            event.preventDefault();
+                            const url = card?.dataset.downloadPdf || card?.dataset.pdfSrc;
+                            if (url) forceDownload(url);
+                            return;
+                        }
+                        // Buka modal pilihan untuk kartu utama
+                        if (label.includes('download template') || label.includes('download file')) {
+                            event.preventDefault();
+                            if (card) openDownloadModal(card);
+                            return;
+                        }
+                    }
+
+                    if (target.classList.contains('btn-create')) {
+                        // Tombol "Download Word" di kontainer "File Lainnya"
+                        if (label.includes('download word')) {
+                            event.preventDefault();
+                            const url = card?.dataset.downloadDocx;
+                            if (url) forceDownload(url);
+                            return;
+                        }
+                        // Toggle seleksi untuk "Buat Surat"
+                        if (label.includes('buat surat') || label.includes('batalkan')) {
+                            event.preventDefault();
+                            toggleSelectionForCard(card, target);
+                            return;
+                        }
+                        // Lainnya
+                        console.log('Tombol Buat/Word diklik.');
+                    }
+                });
+            });
+
+            // --- Logika untuk Modal Preview PDF ---
+            const pdfModal = document.getElementById('pdfModal');
+            const closeModalBtn = document.getElementById('closeModalBtn');
+            const pdfIframe = document.getElementById('pdf-iframe');
+            const imgPreview = document.getElementById('image-preview');
+            const cardImages = document.querySelectorAll('.card-image');
+
+            // --- Elemen untuk Modal Download ---
+            const downloadModal = document.getElementById('downloadModal');
+            const downloadCloseBtn = document.getElementById('downloadCloseBtn');
+            const btnContohPdf = document.getElementById('btnContohPdf');
+            const btnContohWord = document.getElementById('btnContohWord');
+            const btnTemplatePdf = document.getElementById('btnTemplatePdf');
+            const btnTemplateWord = document.getElementById('btnTemplateWord');
+            const btnTemplateWordAlt = document.getElementById('btnTemplateWordAlt');
+
+            // Fungsi untuk membuka modal
+            const openModal = (pdfSrc) => {
+                // Mode PDF
+                imgPreview.style.display = 'none';
+                imgPreview.src = '';
+                pdfIframe.style.display = 'block';
+                pdfIframe.src = pdfSrc;
+                pdfModal.classList.add('visible');
+            };
+
+            const openImageModal = (imgSrc) => {
+                // Mode Gambar
+                pdfIframe.src = '';
+                pdfIframe.style.display = 'none';
+                imgPreview.src = imgSrc;
+                imgPreview.style.display = 'block';
+                pdfModal.classList.add('visible');
+            };
+
+            // Preview untuk gambar Alur menggunakan modal yang sama (fit to frame)
+            const alurImg = document.getElementById('alurImage');
+            if (alurImg) {
+                alurImg.addEventListener('click', () => openImageModal('img/alur.png'));
+            }
+
+            // Fungsi untuk menutup modal
+            const closeModal = () => {
+                pdfModal.classList.remove('visible');
+                // Reset kedua mode
+                pdfIframe.src = '';
+                pdfIframe.style.display = 'block';
+                imgPreview.src = '';
+                imgPreview.style.display = 'none';
+            };
+
+            // Tambahkan event listener untuk setiap gambar kartu
+            cardImages.forEach(image => {
+                image.addEventListener('click', () => {
+                    const card = image.closest('.card');
+                    const pdfSrc = card.dataset.pdfSrc;
+                    const imgSrc = card.dataset.imgSrc;
+                    if (pdfSrc) {
+                        openModal(pdfSrc);
+                    } else if (imgSrc) {
+                        openImageModal(imgSrc);
+                    }
+                });
+            });
+
+            // Event listener untuk tombol close
+            closeModalBtn.addEventListener('click', closeModal);
+
+            // Event listener untuk menutup modal saat mengklik area di luar konten
+            pdfModal.addEventListener('click', (event) => {
+                if (event.target === pdfModal) {
+                    closeModal();
+                }
+            });
+
+            // --- Auto-hide navbar + tampilkan tombol to-top saat scroll ---
+            let lastScrollY = window.scrollY;
+            const onScroll = () => {
+                const y = window.scrollY || document.documentElement.scrollTop;
+                // Sembunyikan navbar saat scroll turun, tampilkan saat scroll naik
+                if (y > lastScrollY && y > 80) navbar.classList.add('hidden');
+                else navbar.classList.remove('hidden');
+                lastScrollY = y;
+                // Toggle tombol ke atas
+                if (y > 200) toTopBtn.classList.add('show');
+                else toTopBtn.classList.remove('show');
+            };
+            window.addEventListener('scroll', onScroll, { passive: true });
+
+            // Klik tombol ke atas
+            toTopBtn.addEventListener('click', () => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+
+            // --- Logika Modal Download Template ---
+            // Util: cek apakah URL masih satu origin
+            const isSameOrigin = (url) => {
+                try { return new URL(url, location.href).origin === location.origin; }
+                catch { return false; }
+            };
+
+            // Util: paksa download untuk same-origin, fallback buka tab baru utk cross-origin
+            const forceDownload = (url) => {
+                if (isSameOrigin(url)) {
+                    const a = document.createElement('a');
+                    a.href = url;
+                    // Gunakan nama file dari path sebagai saran nama simpan
+                    const pathname = new URL(url, location.href).pathname;
+                    const suggested = decodeURIComponent(pathname.split('/').pop() || 'download');
+                    a.setAttribute('download', suggested);
+                    a.style.display = 'none';
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                } else {
+                    // Cross-origin: atribut download diabaikan oleh browser
+                    window.open(url, '_blank', 'noopener');
+                }
+            };
+
+            const setOption = (button, url) => {
+                if (url) {
+                    button.classList.remove('disabled');
+                    button.style.display = '';
+                    button.onclick = (e) => {
+                        e.preventDefault();
+                        forceDownload(url);
+                    };
+                } else {
+                    button.classList.add('disabled');
+                    button.style.display = 'none';
+                    button.onclick = null;
+                }
+            };
+
+            const openDownloadModal = (cardElem) => {
+                // Ambil data-atribut dari kartu
+                const contohPdf = cardElem.dataset.contohPdf;
+                const contohDocx = cardElem.dataset.contohDocx;
+                const templatePdf = cardElem.dataset.templatePdf;
+                const templateDocx = cardElem.dataset.templateDocx;
+                const templateDocxLabel = cardElem.dataset.templateDocxLabel || 'Download Template Dalam Word';
+                const templateDocxAlt = cardElem.dataset.templateDocxAlt;
+                const templateDocxAltLabel = cardElem.dataset.templateDocxAltLabel || 'Download Template Dalam Word';
+
+                // Set tombol sesuai ketersediaan
+                setOption(btnContohPdf, contohPdf);
+                setOption(btnContohWord, contohDocx);
+                setOption(btnTemplatePdf, templatePdf);
+                if (btnTemplateWord) btnTemplateWord.textContent = templateDocxLabel;
+                setOption(btnTemplateWord, templateDocx);
+                if (btnTemplateWordAlt) btnTemplateWordAlt.textContent = templateDocxAltLabel;
+                setOption(btnTemplateWordAlt, templateDocxAlt);
+
+                downloadModal.classList.add('visible');
+            };
+
+            const closeDownloadModal = () => {
+                downloadModal.classList.remove('visible');
+            };
+
+            downloadCloseBtn.addEventListener('click', closeDownloadModal);
+            downloadModal.addEventListener('click', (event) => {
+                if (event.target === downloadModal) {
+                    closeDownloadModal();
+                }
+            });
+
+            // ---- Form builder (client-side) ----
+            const createEmptyFormData = () => ({
+                nomor_spt: '', perihal: '', dasar: '',
+                tanggal_spt: '', tanggal_pergi: '', sampai_tanggal: '', total_hari: 1,
+                tujuan: 'Prabumulih', tujuan_lainnya: '', detail_tujuan: '', sumber_dana: 'rutin',
+                bulan_spt: '', bulan_rincian_biaya: '', tahun_berkas: '2026',
+                kpa: 'Kepala Bidang Cipta Karya', tempat: '', kepala_dinas: 'efandri',
+                pakai_kabid_lama: 'tidak',
+                employees: [], // [{nama, nip}]
+                extras: [],    // [{nama, jenis, jumlah, hari}]
+                poin_list: [],
+                fotos: {},
+            });
+
+            const DOC_TYPE_LABELS = {
+                rincian_biaya: 'Rincian Biaya',
+                pengeluaran_riil: 'Daftar Pengeluaran Riil',
+                spt: 'SPT',
+                sppd_hal_1: 'SPPD Hal.1',
+                permohonan_rutin: 'Permohonan Rutin',
+                nota_dinas: 'Nota Dinas',
+                laporan: 'Laporan Perjalanan Dinas',
+            };
+            const KNOWN_DOC_TYPES = new Set(Object.keys(DOC_TYPE_LABELS));
+            const DRAFTS_STORAGE_KEY = 'portal_spt_drafts_v1';
+            const DRAFT_SCHEMA_VERSION = 1;
+
+            let nextTabId = 1;
+
+            function createTab(options = {}) {
+                return {
+                    id: nextTabId++,
+                    label: '',
+                    formData: { ...createEmptyFormData(), ...(options.formData || {}) },
+                    selectedTypes: new Set(options.selectedTypes || []),
+                    scanInfo: options.scanInfo || null,
+                };
+            }
+
+            const state = {
+                employees: [], // cached suggestions
+                cardsByType: {},
+                tabs: [],
+                activeTab: 0,
+                currentDraftId: null,
+                draftTitle: '',
+            };
+
+            const parseDateValue = (value) => {
+                const t = Date.parse(value || '');
+                return Number.isFinite(t) ? t : 0;
+            };
+
+            function sanitizeFormData(raw) {
+                const merged = { ...createEmptyFormData(), ...(raw && typeof raw === 'object' ? raw : {}) };
+                const toInt = (value, fallback = 0) => {
+                    const n = parseInt(value, 10);
+                    return Number.isFinite(n) ? n : fallback;
+                };
+                const total = toInt(merged.total_hari, 1);
+                merged.total_hari = total > 0 ? total : 1;
+                merged.employees = Array.isArray(merged.employees)
+                    ? merged.employees
+                        .filter(emp => emp && typeof emp === 'object' && String(emp.nama || '').trim())
+                        .map(emp => ({ nama: String(emp.nama || '').trim(), nip: String(emp.nip || '').trim() }))
+                    : [];
+                merged.extras = Array.isArray(merged.extras)
+                    ? merged.extras
+                        .filter(extra => extra && typeof extra === 'object')
+                        .map(extra => ({
+                            nama: String(extra.nama || '').trim(),
+                            jenis: String(extra.jenis || '').trim(),
+                            jumlah: toInt(extra.jumlah, 0),
+                            hari: toInt(extra.hari, 0),
+                        }))
+                    : [];
+                merged.poin_list = Array.isArray(merged.poin_list)
+                    ? merged.poin_list.map(p => String(p || '').trim()).filter(Boolean).slice(0, 6)
+                    : [];
+                const fotosRaw = merged.fotos && typeof merged.fotos === 'object' ? merged.fotos : {};
+                merged.fotos = {
+                    fot1: typeof fotosRaw.fot1 === 'string' ? fotosRaw.fot1 : '',
+                    fot2: typeof fotosRaw.fot2 === 'string' ? fotosRaw.fot2 : '',
+                    fot3: typeof fotosRaw.fot3 === 'string' ? fotosRaw.fot3 : '',
+                };
+                return merged;
+            }
+
+            function sanitizeScanInfo(raw) {
+                if (!raw || typeof raw !== 'object') return null;
+                const text = String(raw.text || '').trim();
+                if (!text) return null;
+                const level = ['info', 'warn', 'error'].includes(raw.level) ? raw.level : 'info';
+                return { level, text };
+            }
+
+            function sanitizeTabDraft(rawTab) {
+                const selectedTypes = Array.isArray(rawTab?.selectedTypes)
+                    ? rawTab.selectedTypes.filter(type => KNOWN_DOC_TYPES.has(type))
+                    : [];
+                return {
+                    formData: sanitizeFormData(rawTab?.formData),
+                    selectedTypes,
+                    scanInfo: sanitizeScanInfo(rawTab?.scanInfo),
+                };
+            }
+
+            function readDraftsFromStorage() {
+                // Adapter draft: saat ini localStorage, nanti bisa diganti ke API cloud.
+                try {
+                    const raw = localStorage.getItem(DRAFTS_STORAGE_KEY);
+                    if (!raw) return [];
+                    const parsed = JSON.parse(raw);
+                    if (!Array.isArray(parsed)) return [];
+                    return parsed
+                        .map((draft) => {
+                            if (!draft || typeof draft !== 'object') return null;
+                            const id = String(draft.id || '').trim();
+                            if (!id) return null;
+                            const workspaceRaw = draft.workspace && typeof draft.workspace === 'object' ? draft.workspace : {};
+                            const tabsRaw = Array.isArray(workspaceRaw.tabs) ? workspaceRaw.tabs : [];
+                            const tabs = tabsRaw.map(sanitizeTabDraft);
+                            const activeRaw = parseInt(workspaceRaw.activeTab, 10);
+                            const activeTab = Number.isFinite(activeRaw) ? activeRaw : 0;
+                            return {
+                                id,
+                                title: String(draft.title || '').trim() || 'Draft Tanpa Judul',
+                                createdAt: String(draft.createdAt || draft.updatedAt || ''),
+                                updatedAt: String(draft.updatedAt || draft.createdAt || ''),
+                                workspace: {
+                                    version: workspaceRaw.version || DRAFT_SCHEMA_VERSION,
+                                    activeTab,
+                                    tabs,
+                                },
+                            };
+                        })
+                        .filter(Boolean)
+                        .sort((a, b) => parseDateValue(b.updatedAt) - parseDateValue(a.updatedAt));
+                } catch (err) {
+                    console.warn('Gagal membaca draft lokal:', err);
+                    return [];
+                }
+            }
+
+            function writeDraftsToStorage(drafts) {
+                try {
+                    localStorage.setItem(DRAFTS_STORAGE_KEY, JSON.stringify(drafts));
+                    return { ok: true };
+                } catch (err) {
+                    return { ok: false, error: err };
+                }
+            }
+
+            function captureWorkspaceSnapshot() {
+                const tabs = state.tabs.map(tab => ({
+                    formData: sanitizeFormData(tab.formData),
+                    selectedTypes: Array.from(tab.selectedTypes || []).filter(type => KNOWN_DOC_TYPES.has(type)),
+                    scanInfo: sanitizeScanInfo(tab.scanInfo),
+                }));
+                return {
+                    version: DRAFT_SCHEMA_VERSION,
+                    activeTab: state.activeTab,
+                    tabs,
+                };
+            }
+
+            function applyWorkspaceSnapshot(snapshot) {
+                const tabsRaw = Array.isArray(snapshot?.tabs) ? snapshot.tabs : [];
+                state.tabs = [];
+                tabsRaw.forEach((raw) => {
+                    const item = sanitizeTabDraft(raw);
+                    state.tabs.push(createTab({
+                        formData: item.formData,
+                        selectedTypes: item.selectedTypes,
+                        scanInfo: item.scanInfo,
+                    }));
+                });
+                if (!state.tabs.length) {
+                    state.tabs.push(createTab());
+                }
+                normalizeTabLabels();
+                const activeRaw = parseInt(snapshot?.activeTab, 10);
+                const nextActive = Number.isFinite(activeRaw) ? activeRaw : 0;
+                state.activeTab = Math.min(Math.max(nextActive, 0), state.tabs.length - 1);
+            }
+
+            function formatDraftDate(isoString) {
+                if (!isoString) return '-';
+                const dt = new Date(isoString);
+                if (Number.isNaN(dt.getTime())) return '-';
+                return dt.toLocaleString('id-ID', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                });
+            }
+
+            function buildDefaultDraftTitle(snapshot = captureWorkspaceSnapshot()) {
+                const tabs = Array.isArray(snapshot.tabs) ? snapshot.tabs : [];
+                if (!tabs.length) return 'Draft SPT';
+                const idx = Math.min(Math.max(parseInt(snapshot.activeTab, 10) || 0, 0), tabs.length - 1);
+                const active = tabs[idx] || {};
+                const selectedTypes = Array.isArray(active.selectedTypes) ? active.selectedTypes : [];
+                const labels = selectedTypes.map(type => DOC_TYPE_LABELS[type] || type).filter(Boolean);
+                const formData = active.formData || {};
+                const nomor = String(formData.nomor_spt || '').trim();
+                const perihal = String(formData.perihal || '').trim();
+                const perihalShort = perihal ? perihal.split(/\s+/).slice(0, 5).join(' ') : '';
+                const parts = [];
+                if (labels.length) parts.push(labels.join(' + '));
+                if (nomor) parts.push(`No ${nomor}`);
+                if (perihalShort) parts.push(perihalShort);
+                return parts.join(' - ') || 'Draft SPT';
+            }
+
+            function saveWorkspaceDraft(options = {}) {
+                const forceNew = Boolean(options.forceNew);
+                const drafts = readDraftsFromStorage();
+                const snapshot = captureWorkspaceSnapshot();
+                const fallbackTitle = buildDefaultDraftTitle(snapshot);
+                const title = (state.draftTitle || '').trim() || fallbackTitle;
+                const now = new Date().toISOString();
+                const exists = state.currentDraftId ? drafts.findIndex(d => d.id === state.currentDraftId) : -1;
+                let targetId = state.currentDraftId;
+                let isNew = forceNew || exists < 0;
+
+                if (isNew) {
+                    targetId = `draft_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+                    drafts.unshift({
+                        id: targetId,
+                        title,
+                        createdAt: now,
+                        updatedAt: now,
+                        workspace: snapshot,
+                    });
+                } else {
+                    const prev = drafts[exists];
+                    drafts[exists] = {
+                        ...prev,
+                        title,
+                        updatedAt: now,
+                        workspace: snapshot,
+                    };
+                }
+
+                const writeResult = writeDraftsToStorage(drafts);
+                if (!writeResult.ok) {
+                    return { ok: false, error: writeResult.error };
+                }
+                state.currentDraftId = targetId;
+                state.draftTitle = title;
+                return { ok: true, isNew, title };
+            }
+
+            function loadWorkspaceDraft(draftId) {
+                const drafts = readDraftsFromStorage();
+                const target = drafts.find(d => d.id === draftId);
+                if (!target) return { ok: false };
+                applyWorkspaceSnapshot(target.workspace);
+                state.currentDraftId = target.id;
+                state.draftTitle = target.title;
+                return { ok: true, draft: target };
+            }
+
+            function deleteWorkspaceDraft(draftId) {
+                const drafts = readDraftsFromStorage();
+                const next = drafts.filter(d => d.id !== draftId);
+                if (next.length === drafts.length) return { ok: false };
+                const writeResult = writeDraftsToStorage(next);
+                if (!writeResult.ok) {
+                    return { ok: false, error: writeResult.error };
+                }
+                if (state.currentDraftId === draftId) {
+                    state.currentDraftId = null;
+                }
+                return { ok: true };
+            }
+
+            function normalizeTabLabels() {
+                state.tabs.forEach((tab, idx) => {
+                    tab.label = String(idx + 1);
+                });
+            }
+
+            function ensureActiveTab() {
+                if (!state.tabs.length) {
+                    state.tabs.push(createTab());
+                    normalizeTabLabels();
+                    state.activeTab = 0;
+                }
+                if (state.activeTab < 0) state.activeTab = 0;
+                if (state.activeTab >= state.tabs.length) state.activeTab = state.tabs.length - 1;
+                return state.tabs[state.activeTab];
+            }
+
+            function getActiveTab() {
+                return ensureActiveTab();
+            }
+
+            function getActiveFormData() {
+                const tab = ensureActiveTab();
+                return tab.formData;
+            }
+
+            function getTabById(id) {
+                return state.tabs.find(tab => tab.id === id) || null;
+            }
+
+            function applyScanPayloadToTab(tab, payload) {
+                if (!tab || !payload) return;
+                const formData = tab.formData;
+                const trim = (val) => typeof val === 'string' ? val.trim() : '';
+
+                const dasar = trim(payload.dasar);
+                if (dasar) formData.dasar = dasar;
+
+                const perihal = trim(payload.perihal);
+                if (perihal) formData.perihal = perihal;
+
+                const tanggalPergi = trim(payload.tanggal_pergi);
+                if (tanggalPergi) formData.tanggal_pergi = tanggalPergi;
+
+                const sampaiTanggal = trim(payload.sampai_tanggal);
+                if (sampaiTanggal) formData.sampai_tanggal = sampaiTanggal;
+
+                const tanggalSpt = trim(payload.tanggal_spt);
+                if (tanggalSpt) formData.tanggal_spt = tanggalSpt;
+
+                const bulanSpt = trim(payload.bulan_spt);
+                if (bulanSpt) formData.bulan_spt = bulanSpt;
+
+                const totalHari = Number(payload.total_hari);
+                if (Number.isFinite(totalHari) && totalHari > 0) {
+                    formData.total_hari = totalHari;
+                }
+
+                if (Array.isArray(payload.pegawai)) {
+                    const mapped = payload.pegawai
+                        .filter(emp => emp && emp.nama)
+                        .map(emp => ({ nama: emp.nama, nip: emp.nip }));
+                    formData.employees = mapped;
+                } else if (Object.prototype.hasOwnProperty.call(payload, 'pegawai')) {
+                    formData.employees = [];
+                }
+
+                const unmatched = Array.isArray(payload.pegawai_unmatched) ? payload.pegawai_unmatched : [];
+                const matched = Array.isArray(payload.pegawai) ? payload.pegawai : [];
+                const infoParts = [];
+                if (matched.length) infoParts.push(`${matched.length} pegawai ditemukan`);
+                if (!matched.length && (!payload.pegawai_raw || !payload.pegawai_raw.length)) {
+                    infoParts.push('Tidak menemukan daftar pegawai pada SPT');
+                }
+                if (!matched.length && Array.isArray(payload.pegawai_raw) && payload.pegawai_raw.length) {
+                    infoParts.push('Daftar pegawai hasil scan tidak dikenali, data pegawai sebelumnya dipertahankan');
+                }
+                if (unmatched.length) infoParts.push(`Tidak dikenali: ${unmatched.join(', ')}`);
+                const infoText = infoParts.join('. ');
+                tab.scanInfo = infoText
+                    ? { level: unmatched.length ? 'warn' : 'info', text: `Hasil Scan: ${infoText}` }
+                    : { level: 'info', text: 'Hasil scan tersimpan.' };
+            }
+
+            function updateCardButtonsForActiveTab() {
+                const tab = ensureActiveTab();
+                const selected = tab ? tab.selectedTypes : new Set();
+                Object.entries(state.cardsByType).forEach(([type, card]) => {
+                    if (!card) return;
+                    const btn = card.querySelector('.btn-create');
+                    if (!btn) return;
+                    if (selected.has(type)) {
+                        btn.textContent = 'Batalkan';
+                        btn.classList.add('btn-danger');
+                    } else {
+                        btn.textContent = 'Buat Surat';
+                        btn.classList.remove('btn-danger');
+                    }
+                });
+            }
+
+            function handleCloseTab(tabId) {
+                if (!state.tabs.length) return;
+                const index = state.tabs.findIndex(tab => tab.id === tabId);
+                if (index === -1) return;
+
+                if (state.tabs.length === 1) {
+                    const tab = state.tabs[0];
+                    tab.formData = createEmptyFormData();
+                    tab.selectedTypes = new Set();
+                    tab.scanInfo = null;
+                    state.activeTab = 0;
+                    renderGlobalForm({ skipCapture: true });
+                    updateCardButtonsForActiveTab();
+                    return;
+                }
+
+                state.tabs.splice(index, 1);
+                normalizeTabLabels();
+
+                if (state.activeTab >= state.tabs.length) {
+                    state.activeTab = state.tabs.length - 1;
+                } else if (index <= state.activeTab) {
+                    state.activeTab = Math.max(0, state.activeTab - 1);
+                }
+
+                renderGlobalForm({ skipCapture: true });
+                updateCardButtonsForActiveTab();
+            }
+
+            state.tabs.push(createTab());
+            normalizeTabLabels();
+
+            document.querySelectorAll('.card').forEach(card => {
+                const type = card.dataset.type;
+                if (type) state.cardsByType[type] = card;
+            });
+            updateCardButtonsForActiveTab();
+
+            const formAnchor = document.getElementById('globalFormAnchor');
+
+            function syncStateFromForm(formEl){
+                if (!formEl) return;
+                const tab = getActiveTab();
+                if (!tab) return;
+                const formData = tab.formData;
+                const grab = (name) => {
+                    const el = formEl.querySelector(`[name="${name}"]`);
+                    if (!el) return undefined;
+                    return el.value;
+                };
+                const assign = (name, transform) => {
+                    const raw = grab(name);
+                    if (raw === undefined) return;
+                    formData[name] = transform ? transform(raw) : raw;
+                };
+                assign('nomor_spt');
+                assign('perihal');
+                assign('dasar');
+                assign('tanggal_spt');
+                assign('tanggal_pergi');
+                assign('sampai_tanggal');
+                assign('total_hari', (v) => v);
+                assign('tujuan');
+                assign('tujuan_lainnya');
+                assign('detail_tujuan');
+                assign('sumber_dana');
+                assign('bulan_spt');
+                assign('bulan_rincian_biaya');
+                assign('tahun_berkas');
+                assign('kpa');
+                assign('tempat');
+                assign('kepala_dinas');
+                assign('pakai_kabid_lama');
+                if (formEl._getEmployees) formData.employees = (formEl._getEmployees() || []).map(emp => ({ ...emp }));
+                if (formEl._getExtras) formData.extras = formEl._getExtras();
+                if (formEl._getPoints) formData.poin_list = formEl._getPoints();
+                if (formEl._fotos) formData.fotos = { ...formEl._fotos };
+            }
+
+            async function fetchEmployees(q=''){
+                try {
+                    const res = await fetch(`/api/employees?q=${encodeURIComponent(q)}`, { credentials: 'same-origin' });
+                    if (res.status === 401) {
+                        // If backend is protected, redirect to login preserving current path
+                        try {
+                            const data = await res.json();
+                            if (data && data.login) {
+                                const next = encodeURIComponent(location.pathname + location.search);
+                                location.href = `${data.login}?next=${next}`;
+                            }
+                        } catch (e) {}
+                        return [];
+                    }
+                    if (!res.ok) {
+                        console.warn('Gagal memuat daftar pegawai:', res.status);
+                        return [];
+                    }
+                    return await res.json();
+                } catch (e) {
+                    console.warn('Gagal memanggil /api/employees:', e);
+                    return [];
+                }
+            }
+
+            function toIsoDateString(yearRaw, monthRaw, dayRaw) {
+                const year = Number(yearRaw);
+                const month = Number(monthRaw);
+                const day = Number(dayRaw);
+                if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return '';
+                if (year < 1900 || year > 2100) return '';
+                const dt = new Date(Date.UTC(year, month - 1, day));
+                if (
+                    dt.getUTCFullYear() !== year ||
+                    dt.getUTCMonth() + 1 !== month ||
+                    dt.getUTCDate() !== day
+                ) return '';
+                return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            }
+
+            function normalizeDateInputValue(raw) {
+                if (!raw) return '';
+                const value = String(raw).trim();
+                if (!value) return '';
+
+                let m = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                if (m) return toIsoDateString(m[1], m[2], m[3]);
+
+                m = value.match(/^(\d{4})[\/.](\d{1,2})[\/.](\d{1,2})$/);
+                if (m) return toIsoDateString(m[1], m[2], m[3]);
+
+                m = value.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})$/);
+                if (m) return toIsoDateString(m[3], m[2], m[1]);
+
+                return '';
+            }
+
+            function wireDateInputs(rootEl) {
+                if (!rootEl) return;
+                const probe = document.createElement('input');
+                probe.type = 'date';
+                const supportsNativeDate = probe.type === 'date';
+
+                rootEl.querySelectorAll('input.date-input').forEach((input) => {
+                    if (input.dataset.dateWired === '1') return;
+                    input.dataset.dateWired = '1';
+
+                    if (!supportsNativeDate) {
+                        input.type = 'text';
+                        input.placeholder = 'YYYY-MM-DD / DD-MM-YYYY';
+                        input.inputMode = 'numeric';
+                    }
+
+                    const commitManualValue = () => {
+                        const normalized = normalizeDateInputValue(input.value);
+                        if (normalized) input.value = normalized;
+                    };
+
+                    if (typeof input.showPicker === 'function') {
+                        input.addEventListener('focus', () => {
+                            try { input.showPicker(); } catch (_) {}
+                        });
+                    }
+
+                    input.addEventListener('blur', commitManualValue);
+                    input.addEventListener('change', commitManualValue);
+                    input.addEventListener('keydown', (event) => {
+                        if (event.key === 'Enter') commitManualValue();
+                    });
+                });
+            }
+
+            function createCommonFields() {
+                const el = document.createElement('div');
+                el.innerHTML = `
+                <div class="form-grid">
+                  <div class="form-row">
+                    <label>Nomor Surat SPT</label>
+                    <input name="nomor_spt" placeholder="Nomornya saja (kosongkan jika belum ada)">
+                  </div>
+                  <div class="form-row">
+                    <label>Perihal</label>
+                    <textarea name="perihal" placeholder="Contoh: Survei Perencanaan untuk Kegiatan ..." rows="2" style="resize:vertical;"></textarea>
+                  </div>
+                  <div class="form-row">
+                    <label>Dasar</label>
+                    <textarea name="dasar" placeholder="Contoh: Surat dari ..." rows="2" style="resize:vertical;"></textarea>
+                  </div>
+                  <div class="form-row">
+                    <label>Tanggal SPT ditandatangani</label>
+                    <input type="date" class="date-input" name="tanggal_spt">
+                  </div>
+                  <div class="form-row">
+                    <label>Tanggal pergi</label>
+                    <input type="date" class="date-input" name="tanggal_pergi">
+                  </div>
+                  <div class="form-row">
+                    <label>Sampai tanggal</label>
+                    <input type="date" class="date-input" name="sampai_tanggal">
+                  </div>
+                  <div class="form-row">
+                    <label>Total hari</label>
+                    <input type="number" min="1" name="total_hari" value="1">
+                  </div>
+                  <div class="form-row">
+                    <label>Tujuan pergi</label>
+                    <select name="tujuan">
+                      <option value="">- Pilih -</option>
+                      <option>Palembang</option>
+                      <option>Prabumulih</option>
+                    </select>
+                  </div>
+                  <div class="form-row">
+                    <label>Detail tujuan</label>
+                    <select name="detail_tujuan">
+                      <option value="">- Pilih -</option>
+                      <option>DL lainnya</option>
+                      <option>Bimtek</option>
+                      <option>Titik nol</option>
+                      <option>Lainnya</option>
+                    </select>
+                  </div>
+                  <div class="form-row">
+                    <label>Sumber dana</label>
+                    <select name="sumber_dana">
+                      <option value="rutin">Rutin</option>
+                      <option value="bidang">Bidang</option>
+                    </select>
+                  </div>
+                </div>`;
+                return el;
+            }
+
+            function employeeSelector(initial = []) {
+                const wrap = document.createElement('div');
+                wrap.className = 'form-row emp-selector';
+                wrap.innerHTML = `
+                  <label>Daftar Pegawai</label>
+                  <div class="emp-input-wrap">
+                    <input type="text" class="emp-input" placeholder="Ketik nama (contoh: Abd)...">
+                    <div class="suggest-box" style="display:none;"></div>
+                  </div>
+                  <div class="chips emp-chips"></div>
+                `;
+                const input = wrap.querySelector('.emp-input');
+                const box = wrap.querySelector('.suggest-box');
+                const chips = wrap.querySelector('.emp-chips');
+                const chipKey = (emp) => `${emp.nama || ''}__${String(emp.nip || '')}`;
+                const selected = Array.isArray(initial) ? initial.map(e=>({nama:e.nama, nip:e.nip})) : [];
+                let lastTimer = null;
+                let results = [];
+                let activeIdx = -1;
+                let sortableInstance = null;
+
+                const reorderSelectedFromDom = () => {
+                    const keys = Array.from(chips.children).map(chip => chip.dataset.key);
+                    selected.sort((a, b) => keys.indexOf(chipKey(a)) - keys.indexOf(chipKey(b)));
+                };
+
+                const ensureSortable = () => {
+                    if (typeof Sortable === 'undefined' || sortableInstance) return;
+                    sortableInstance = Sortable.create(chips, {
+                        animation: 150,
+                        ghostClass: 'chip-dragging',
+                        onEnd: () => reorderSelectedFromDom(),
+                    });
+                };
+
+                ensureSortable();
+
+                function hideBox(){ box.style.display='none'; box.innerHTML=''; activeIdx=-1; }
+                function showBox(){ box.style.display='block'; }
+
+                function renderBox(items){
+                    box.innerHTML = '';
+                    items.forEach((emp, idx)=>{
+                        const row = document.createElement('div');
+                        row.className = 'suggest-item' + (idx===activeIdx?' active':'');
+                        const nip = String(emp.nip || '').replace(/\.[0-9]+$/, '');
+                        row.innerHTML = `<span>${emp.nama||''}</span><small>${nip}</small>`;
+                        row.onclick = ()=> selectEmployee(emp);
+                        box.appendChild(row);
+                    });
+                    if (items.length) showBox(); else hideBox();
+                }
+
+                function selectEmployee(emp){
+                    if (!emp || !emp.nama) return;
+                    if (selected.find(x=>chipKey(x) === chipKey(emp))) { input.value=''; hideBox(); return; }
+                    if (selected.length>=7) { hideBox(); return; }
+                    const nipStr = String(emp.nip || '').replace(/\.[0-9]+$/, '');
+                    const record = {nama: emp.nama, nip: nipStr};
+                    selected.push(record);
+                    const chip = document.createElement('span');
+                    chip.className='chip';
+                    chip.dataset.key = chipKey(record);
+                    chip.textContent = `${emp.nama} (${nipStr})`;
+                    const x = document.createElement('span'); x.className='x'; x.textContent='×';
+                    x.onclick = ()=>{ chips.removeChild(chip); const i=selected.findIndex(s=>chipKey(s)===chip.dataset.key); if(i>=0) selected.splice(i,1); reorderSelectedFromDom(); };
+                    chip.appendChild(x);
+                    chips.appendChild(chip);
+                    input.value=''; hideBox();
+                    ensureSortable();
+                }
+
+                input.addEventListener('input', () => {
+                    const q = input.value.trim();
+                    if (lastTimer) clearTimeout(lastTimer);
+                    if (!q){ hideBox(); return; }
+                    lastTimer = setTimeout(async ()=>{
+                        results = await fetchEmployees(q);
+                        activeIdx = results.length ? 0 : -1;
+                        renderBox(results);
+                    }, 200);
+                });
+
+                input.addEventListener('keydown', (e)=>{
+                    if (box.style.display==='none') return;
+                    if (e.key==='ArrowDown'){ e.preventDefault(); if (results.length){ activeIdx=(activeIdx+1)%results.length; renderBox(results);} }
+                    else if (e.key==='ArrowUp'){ e.preventDefault(); if (results.length){ activeIdx=(activeIdx-1+results.length)%results.length; renderBox(results);} }
+                    else if (e.key==='Enter'){ e.preventDefault(); if (results.length){ selectEmployee(results[Math.max(activeIdx,0)]); } }
+                    else if (e.key==='Escape'){ hideBox(); }
+                });
+
+                document.addEventListener('click', (e)=>{ if (!wrap.contains(e.target)) hideBox(); });
+
+                // Prefill chips if initial provided
+                if (selected.length){
+                    selected.forEach(emp => {
+                        const chip = document.createElement('span');
+                        chip.className='chip';
+                        const nipStr = String(emp.nip||'');
+                        chip.dataset.key = chipKey(emp);
+                        chip.textContent = `${emp.nama} (${nipStr})`;
+                        const x = document.createElement('span'); x.className='x'; x.textContent='×';
+                        x.onclick = ()=>{ chips.removeChild(chip); const i=selected.findIndex(s=>chipKey(s)===chip.dataset.key); if(i>=0) selected.splice(i,1); reorderSelectedFromDom(); };
+                        chip.appendChild(x);
+                        chips.appendChild(chip);
+                    });
+                    ensureSortable();
+                    reorderSelectedFromDom();
+                }
+
+                return {el: wrap, get: ()=>selected};
+            }
+
+            function extrasSection(initialRows = [], getSelectedNames){
+                const wrap = document.createElement('div');
+                wrap.innerHTML = `<div class="section-title">Pengeluaran tambahan</div>
+                <table class="extras-table"><thead><tr><th>Nama</th><th>Jenis</th><th>Jumlah (Rp)</th><th>Hari</th><th></th></tr></thead><tbody></tbody></table>
+                <div class="extras-actions"><button type="button" class="btn">+ Tambah</button></div>`;
+                const tbody = wrap.querySelector('tbody');
+                const btnAdd = wrap.querySelector('button');
+                const TYPES = ['Angkutan setempat','Uang Saku','Uang Representasi','Biaya Transportasi','Biaya Penginapan','Taksi / sewa kendaraan'];
+                btnAdd.onclick = ()=>addRow();
+                function addRow(preset){
+                    const tr = document.createElement('tr');
+                    const selNama = document.createElement('select');
+                    selNama.innerHTML = `<option value="">-</option>` + getSelectedNames().map(n=>`<option>${n}</option>`).join('');
+                    const selJenis = document.createElement('select');
+                    selJenis.innerHTML = TYPES.map(t=>`<option>${t}</option>`).join('');
+                    const inJumlah = document.createElement('input'); inJumlah.type='number'; inJumlah.min='0'; inJumlah.step='1000';
+                    const inHari = document.createElement('input'); inHari.type='number'; inHari.min='0'; inHari.step='1';
+                    const btnDel = document.createElement('button'); btnDel.className='btn'; btnDel.textContent='Hapus'; btnDel.onclick=(e)=>{e.preventDefault(); tbody.removeChild(tr);};
+                    ;
+                    const tds=[selNama, selJenis, inJumlah, inHari, btnDel].map(el=>{const td=document.createElement('td'); td.appendChild(el); return td;});
+                    tds.forEach(td=>tr.appendChild(td));
+                    tbody.appendChild(tr);
+                    if (preset){
+                        selNama.value = preset.nama || '';
+                        selJenis.value = preset.jenis || TYPES[0];
+                        inJumlah.value = preset.jumlah || '';
+                        inHari.value = preset.hari || '';
+                    }
+                }
+                if (Array.isArray(initialRows)) initialRows.forEach(row=>addRow(row));
+                return {el: wrap, get: ()=>Array.from(tbody.children).map(tr=>{
+                    const [n,jml1,jml2,jml3,jml4]=tr.querySelectorAll('select,input,button');
+                    const tds=tr.querySelectorAll('td');
+                    return {
+                        nama: tds[0].querySelector('select').value,
+                        jenis: tds[1].querySelector('select').value,
+                        jumlah: tds[2].querySelector('input').value,
+                        hari: tds[3].querySelector('input').value,
+                    };
+                })};
+            }
+
+            // Mapping kebutuhan field per tipe dokumen (untuk deduplikasi)
+            const FIELDS_BY_TYPE = {
+                rincian_biaya: ['nomor_spt','pegawai','tanggal_spt','tanggal_pergi','sampai_tanggal','total_hari','tujuan','detail_tujuan','sumber_dana','pengeluaran_tambahan','bulan_rincian_biaya','tahun_berkas'],
+                pengeluaran_riil: ['nomor_spt','pegawai','tanggal_spt','tanggal_pergi','sampai_tanggal','total_hari','tujuan','detail_tujuan','sumber_dana','pengeluaran_tambahan','perihal'],
+                spt: ['pegawai','tanggal_pergi','sampai_tanggal','total_hari','dasar','perihal','bulan_spt','tahun_berkas','kepala_dinas'],
+                sppd_hal_1: ['nomor_spt','pegawai','tanggal_pergi','sampai_tanggal','total_hari','tujuan','sumber_dana','perihal','kpa','bulan_spt','tahun_berkas'],
+                permohonan_rutin: ['pegawai','tanggal_pergi','sampai_tanggal','total_hari','perihal','pengeluaran_tambahan','tujuan','nomor_spt','bulan_spt'],
+                nota_dinas: ['pegawai','perihal','nomor_spt','pakai_kabid_lama','tanggal_pergi','sampai_tanggal','total_hari','tahun_berkas'],
+                laporan: ['pegawai','tanggal_pergi','sampai_tanggal','total_hari','tujuan','dasar','perihal','nomor_spt','tempat','tahun_berkas'],
+            };
+
+            function toggleSelectionForCard(card, button){
+                const type = card.dataset.type;
+                if (!type) return;
+                const tab = getActiveTab();
+                if (!tab) return;
+                state.cardsByType[type] = card;
+                const selected = tab.selectedTypes;
+                const formEl = document.getElementById('global-form-wrap');
+                syncStateFromForm(formEl);
+                if (selected.has(type)){
+                    selected.delete(type);
+                    button.textContent='Buat Surat';
+                    button.classList.remove('btn-danger');
+                } else {
+                    selected.add(type);
+                    button.textContent='Batalkan';
+                    button.classList.add('btn-danger');
+                }
+                renderGlobalForm({ skipCapture: true });
+                updateCardButtonsForActiveTab();
+            }
+
+
+            function renderGlobalForm(opts = {}) {
+                const existing = document.getElementById('global-form-wrap');
+                if (existing && !opts.skipCapture) {
+                    syncStateFromForm(existing);
+                }
+
+                const activeTab = ensureActiveTab();
+                if (!activeTab) {
+                    if (existing) existing.remove();
+                    return;
+                }
+
+                const types = Array.from(activeTab.selectedTypes.values());
+                const formData = activeTab.formData;
+                const namesMap = DOC_TYPE_LABELS;
+
+                const wrap = existing || document.createElement('div');
+                wrap.id = 'global-form-wrap';
+                wrap.className = 'form-wrap';
+                wrap.innerHTML = '';
+
+                const activeTabId = activeTab.id;
+
+                // Tabs navigation
+                const tabsBar = document.createElement('div');
+                tabsBar.className = 'tabs-bar';
+                state.tabs.forEach((tab, idx) => {
+                    const item = document.createElement('div');
+                    item.className = 'tab-item' + (tab.id === activeTabId ? ' active' : '');
+
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'tab-btn' + (tab.id === activeTabId ? ' active' : '');
+                    btn.textContent = tab.label || String(idx + 1);
+                    btn.onclick = () => {
+                        if (tab.id === activeTabId) return;
+                        const formEl = document.getElementById('global-form-wrap');
+                        syncStateFromForm(formEl);
+                        const targetIndex = state.tabs.findIndex(t => t.id === tab.id);
+                        if (targetIndex >= 0) {
+                            state.activeTab = targetIndex;
+                            renderGlobalForm({ skipCapture: true });
+                            updateCardButtonsForActiveTab();
+                        }
+                    };
+
+                    const closeBtn = document.createElement('button');
+                    closeBtn.type = 'button';
+                    closeBtn.className = 'tab-close';
+                    closeBtn.innerHTML = '&times;';
+                    closeBtn.title = 'Tutup tab ini';
+                    if (state.tabs.length <= 1) {
+                        closeBtn.disabled = true;
+                    }
+                    closeBtn.onclick = (event) => {
+                        event.stopPropagation();
+                        handleCloseTab(tab.id);
+                    };
+
+                    item.appendChild(btn);
+                    item.appendChild(closeBtn);
+                    tabsBar.appendChild(item);
+                });
+                const addTabBtn = document.createElement('button');
+                addTabBtn.type = 'button';
+                addTabBtn.className = 'tab-btn tab-add';
+                addTabBtn.textContent = '+';
+                addTabBtn.onclick = () => {
+                    const formEl = document.getElementById('global-form-wrap');
+                    syncStateFromForm(formEl);
+                    const baseTab = getActiveTab();
+                    const newTab = createTab({ selectedTypes: baseTab ? Array.from(baseTab.selectedTypes) : [] });
+                    state.tabs.push(newTab);
+                    normalizeTabLabels();
+                    state.activeTab = state.tabs.length - 1;
+                    renderGlobalForm({ skipCapture: true });
+                    updateCardButtonsForActiveTab();
+                };
+                tabsBar.appendChild(addTabBtn);
+                wrap.appendChild(tabsBar);
+
+                // Header info
+                const selInfo = document.createElement('div');
+                selInfo.style.display = 'flex';
+                selInfo.style.justifyContent = 'space-between';
+                selInfo.style.alignItems = 'center';
+                selInfo.style.marginBottom = '8px';
+                const selectedLabel = types.length ? `Dipilih: ${types.map(t => namesMap[t] || t).join(', ')}` : 'Belum ada surat dipilih';
+                selInfo.innerHTML = `<div class="section-title">${selectedLabel}</div>`;
+                const clearBtn = document.createElement('button');
+                clearBtn.className = 'btn';
+                clearBtn.textContent = 'Batalkan Semua';
+                clearBtn.disabled = !types.length;
+                clearBtn.onclick = () => {
+                    const formEl = document.getElementById('global-form-wrap');
+                    syncStateFromForm(formEl);
+                    activeTab.selectedTypes.clear();
+                    activeTab.scanInfo = null;
+                    renderGlobalForm({ skipCapture: true });
+                    updateCardButtonsForActiveTab();
+                };
+                wrap.appendChild(selInfo);
+
+                const draftPanel = document.createElement('div');
+                draftPanel.className = 'draft-panel';
+
+                const draftHeader = document.createElement('div');
+                draftHeader.className = 'draft-header';
+                const drafts = readDraftsFromStorage();
+                draftHeader.textContent = `Draft lokal tersimpan: ${drafts.length}`;
+                draftPanel.appendChild(draftHeader);
+
+                const draftToolbar = document.createElement('div');
+                draftToolbar.className = 'draft-toolbar';
+
+                const draftTitleInput = document.createElement('input');
+                draftTitleInput.type = 'text';
+                draftTitleInput.className = 'draft-title-input';
+                draftTitleInput.placeholder = 'Judul draft (contoh: SPT Survei Maret)';
+                if (!state.draftTitle) {
+                    state.draftTitle = buildDefaultDraftTitle();
+                }
+                draftTitleInput.value = state.draftTitle;
+                draftTitleInput.addEventListener('input', () => {
+                    state.draftTitle = draftTitleInput.value;
+                });
+
+                const persistDraftBtn = document.createElement('button');
+                persistDraftBtn.type = 'button';
+                persistDraftBtn.className = 'btn draft-btn';
+                persistDraftBtn.textContent = state.currentDraftId ? 'Update Draft' : 'Simpan Draft';
+                persistDraftBtn.onclick = (event) => {
+                    event.preventDefault();
+                    const formEl = document.getElementById('global-form-wrap');
+                    syncStateFromForm(formEl);
+                    const result = saveWorkspaceDraft();
+                    if (!result.ok) {
+                        alert('Gagal menyimpan draft lokal. Penyimpanan browser mungkin penuh.');
+                        return;
+                    }
+                    renderGlobalForm({ skipCapture: true });
+                    updateCardButtonsForActiveTab();
+                };
+
+                const saveAsNewBtn = document.createElement('button');
+                saveAsNewBtn.type = 'button';
+                saveAsNewBtn.className = 'btn draft-btn';
+                saveAsNewBtn.textContent = 'Simpan Draft Baru';
+                saveAsNewBtn.onclick = (event) => {
+                    event.preventDefault();
+                    const formEl = document.getElementById('global-form-wrap');
+                    syncStateFromForm(formEl);
+                    const result = saveWorkspaceDraft({ forceNew: true });
+                    if (!result.ok) {
+                        alert('Gagal menyimpan draft lokal. Penyimpanan browser mungkin penuh.');
+                        return;
+                    }
+                    renderGlobalForm({ skipCapture: true });
+                    updateCardButtonsForActiveTab();
+                };
+
+                const releaseDraftBtn = document.createElement('button');
+                releaseDraftBtn.type = 'button';
+                releaseDraftBtn.className = 'btn draft-btn';
+                releaseDraftBtn.textContent = 'Lepas Draft Aktif';
+                releaseDraftBtn.disabled = !state.currentDraftId;
+                releaseDraftBtn.onclick = (event) => {
+                    event.preventDefault();
+                    state.currentDraftId = null;
+                    state.draftTitle = buildDefaultDraftTitle();
+                    renderGlobalForm({ skipCapture: true });
+                    updateCardButtonsForActiveTab();
+                };
+
+                draftToolbar.appendChild(draftTitleInput);
+                draftToolbar.appendChild(persistDraftBtn);
+                draftToolbar.appendChild(saveAsNewBtn);
+                draftToolbar.appendChild(releaseDraftBtn);
+                draftPanel.appendChild(draftToolbar);
+
+                if (drafts.length) {
+                    const draftList = document.createElement('div');
+                    draftList.className = 'draft-list';
+                    drafts.forEach((draft) => {
+                        const item = document.createElement('div');
+                        item.className = 'draft-item' + (draft.id === state.currentDraftId ? ' active' : '');
+
+                        const main = document.createElement('div');
+                        main.className = 'draft-main';
+
+                        const titleEl = document.createElement('div');
+                        titleEl.className = 'draft-title';
+                        titleEl.textContent = draft.title;
+
+                        const metaEl = document.createElement('div');
+                        metaEl.className = 'draft-meta';
+                        const tabCount = Array.isArray(draft.workspace?.tabs) ? draft.workspace.tabs.length : 0;
+                        metaEl.textContent = `${tabCount} tab | Diubah ${formatDraftDate(draft.updatedAt)}`;
+
+                        main.appendChild(titleEl);
+                        main.appendChild(metaEl);
+
+                        const actions = document.createElement('div');
+                        actions.className = 'draft-actions';
+
+                        const loadBtn = document.createElement('button');
+                        loadBtn.type = 'button';
+                        loadBtn.className = 'btn draft-btn';
+                        loadBtn.textContent = 'Muat';
+                        loadBtn.onclick = (event) => {
+                            event.preventDefault();
+                            const ok = confirm(`Muat draft "${draft.title}"? Perubahan saat ini akan diganti.`);
+                            if (!ok) return;
+                            const result = loadWorkspaceDraft(draft.id);
+                            if (!result.ok) {
+                                alert('Draft tidak ditemukan atau rusak.');
+                                return;
+                            }
+                            renderGlobalForm({ skipCapture: true });
+                            updateCardButtonsForActiveTab();
+                        };
+
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.type = 'button';
+                        deleteBtn.className = 'btn btn-danger draft-btn';
+                        deleteBtn.textContent = 'Hapus';
+                        deleteBtn.onclick = (event) => {
+                            event.preventDefault();
+                            const ok = confirm(`Hapus draft "${draft.title}"?`);
+                            if (!ok) return;
+                            const wasActive = state.currentDraftId === draft.id;
+                            const result = deleteWorkspaceDraft(draft.id);
+                            if (!result.ok) {
+                                alert('Gagal menghapus draft.');
+                                return;
+                            }
+                            if (wasActive) {
+                                state.draftTitle = buildDefaultDraftTitle();
+                            }
+                            renderGlobalForm({ skipCapture: true });
+                            updateCardButtonsForActiveTab();
+                        };
+
+                        actions.appendChild(loadBtn);
+                        actions.appendChild(deleteBtn);
+                        item.appendChild(main);
+                        item.appendChild(actions);
+                        draftList.appendChild(item);
+                    });
+                    draftPanel.appendChild(draftList);
+                } else {
+                    const empty = document.createElement('div');
+                    empty.className = 'draft-empty';
+                    empty.textContent = 'Belum ada draft lokal. Isi form lalu klik "Simpan Draft".';
+                    draftPanel.appendChild(empty);
+                }
+
+                wrap.appendChild(draftPanel);
+
+                // Scan SPT tools
+                const toolsWrap = document.createElement('div');
+                toolsWrap.className = 'form-tools';
+                const scanBtn = document.createElement('button');
+                scanBtn.type = 'button';
+                scanBtn.className = 'btn scan-file-btn';
+                scanBtn.textContent = 'Scan SPT (PDF/DOCX/Gambar)';
+
+                const scanCameraBtn = document.createElement('button');
+                scanCameraBtn.type = 'button';
+                scanCameraBtn.className = 'btn scan-camera-btn';
+                scanCameraBtn.textContent = 'Scan via Kamera';
+
+                const scanInput = document.createElement('input');
+                scanInput.type = 'file';
+                scanInput.accept = '.pdf,.PDF,.docx,.DOCX,.txt,.jpg,.JPG,.jpeg,.JPEG,.png,.PNG,.tif,.TIF,.tiff,.TIFF,.heic,.HEIC,.heif,.HEIF';
+                scanInput.style.display = 'none';
+
+                const scanCameraInput = document.createElement('input');
+                scanCameraInput.type = 'file';
+                scanCameraInput.accept = 'image/*';
+                scanCameraInput.setAttribute('capture', 'environment');
+                scanCameraInput.style.display = 'none';
+
+                const scanNote = document.createElement('div');
+                const refreshScanInfo = () => {
+                    const tabRef = getTabById(activeTabId);
+                    const info = tabRef ? tabRef.scanInfo : null;
+                    if (info && info.text) {
+                        scanNote.textContent = info.text;
+                        scanNote.className = `scan-info ${info.level || 'info'}`.trim();
+                        scanNote.style.display = 'block';
+                    } else {
+                        scanNote.textContent = 'Scan SPT mendukung PDF, DOCX, serta gambar seperti JPG/PNG/HEIC/HEIF selama teks dapat dibaca. Unggah dari galeri atau file manager, atau ambil foto langsung dari kamera.';
+                        scanNote.className = 'scan-info';
+                        scanNote.style.display = 'block';
+                    }
+                };
+                refreshScanInfo();
+
+                const processScanFile = async (file, triggerButton) => {
+                    if (!file) return;
+                    const existingForm = document.getElementById('global-form-wrap');
+                    syncStateFromForm(existingForm);
+                    const originalLabel = triggerButton ? triggerButton.textContent : null;
+                    scanBtn.disabled = true;
+                    scanCameraBtn.disabled = true;
+                    if (triggerButton) triggerButton.textContent = 'Memindai...';
+                    const targetTab = getTabById(activeTabId) || getActiveTab();
+                    if (targetTab) targetTab.scanInfo = null;
+                    refreshScanInfo();
+                    try {
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        const res = await fetch('/api/scan/spt', { method: 'POST', body: formData, credentials: 'same-origin' });
+                        if (res.status === 401) {
+                            try {
+                                const data = await res.json();
+                                if (data && data.login) {
+                                    const next = encodeURIComponent(location.pathname + location.search);
+                                    location.href = `${data.login}?next=${next}`;
+                                }
+                            } catch (err) {}
+                            return;
+                        }
+                        const payload = await res.json();
+                        if (!res.ok) {
+                            const reason = payload && payload.error ? payload.error : `Status ${res.status}`;
+                            throw new Error(reason);
+                        }
+                        const tabTarget = getTabById(activeTabId) || getActiveTab();
+                        const submitResult = (tab, data) => {
+                            if (!tab || !data) return;
+                            applyScanPayloadToTab(tab, data);
+                        };
+                        const batches = Array.isArray(payload.batch) ? payload.batch : null;
+                        if (batches && batches.length) {
+                            const [first, ...rest] = batches;
+                            submitResult(tabTarget, first);
+                            rest.forEach(entry => {
+                                const newTab = createTab({ selectedTypes: tabTarget ? Array.from(tabTarget.selectedTypes) : [] });
+                                submitResult(newTab, entry);
+                                state.tabs.push(newTab);
+                            });
+                            normalizeTabLabels();
+                            if (tabTarget) {
+                                const createdCount = batches.length - 1;
+                                if (createdCount > 0) {
+                                    const baseText = tabTarget.scanInfo && tabTarget.scanInfo.text ? tabTarget.scanInfo.text : 'Hasil scan tersimpan.';
+                                    tabTarget.scanInfo = { level: 'info', text: `${baseText} Ditambahkan ${createdCount} tab baru.` };
+                                }
+                            }
+                        } else {
+                            submitResult(tabTarget, payload);
+                        }
+                        renderGlobalForm({ skipCapture: true });
+                        updateCardButtonsForActiveTab();
+                    } catch (err) {
+                        const tabRef = getTabById(activeTabId) || getActiveTab();
+                        if (tabRef) {
+                            tabRef.scanInfo = { level: 'error', text: `Gagal memindai SPT: ${err && err.message ? err.message : err}` };
+                        }
+                        refreshScanInfo();
+                    } finally {
+                        scanInput.value = '';
+                        scanCameraInput.value = '';
+                        if (scanBtn.isConnected) scanBtn.disabled = false;
+                        if (scanCameraBtn.isConnected) scanCameraBtn.disabled = false;
+                        if (triggerButton && triggerButton.isConnected && originalLabel) {
+                            triggerButton.textContent = originalLabel;
+                        }
+                    }
+                };
+
+                scanBtn.onclick = (e) => {
+                    e.preventDefault();
+                    scanInput.click();
+                };
+
+                scanCameraBtn.onclick = (e) => {
+                    e.preventDefault();
+                    scanCameraInput.click();
+                };
+
+                const handleInputChange = async (event, sourceButton) => {
+                    const file = event.target.files && event.target.files[0];
+                    if (!file) {
+                        return;
+                    }
+                    await processScanFile(file, sourceButton);
+                };
+
+                scanInput.addEventListener('change', (event) => handleInputChange(event, scanBtn));
+                scanCameraInput.addEventListener('change', (event) => handleInputChange(event, scanCameraBtn));
+
+                const dropZone = document.createElement('div');
+                dropZone.className = 'drop-zone';
+                dropZone.innerHTML = '<strong>Tarik & letakkan</strong> file SPT di sini (PDF, DOCX, JPG/PNG/HEIC/HEIF) atau klik tombol di samping.';
+
+                const preventDefaults = (evt) => {
+                    evt.preventDefault();
+                    evt.stopPropagation();
+                };
+                ['dragenter','dragover','dragleave','drop'].forEach(evtName => {
+                    dropZone.addEventListener(evtName, preventDefaults);
+                });
+                ['dragenter','dragover'].forEach(evtName => {
+                    dropZone.addEventListener(evtName, () => dropZone.classList.add('dragover'));
+                });
+                ['dragleave','drop'].forEach(evtName => {
+                    dropZone.addEventListener(evtName, () => dropZone.classList.remove('dragover'));
+                });
+                dropZone.addEventListener('drop', async (evt) => {
+                    const file = evt.dataTransfer && evt.dataTransfer.files && evt.dataTransfer.files[0];
+                    if (file){
+                        await processScanFile(file, scanBtn);
+                    }
+                });
+                dropZone.addEventListener('click', () => scanInput.click());
+
+                toolsWrap.appendChild(scanBtn);
+                toolsWrap.appendChild(scanCameraBtn);
+                toolsWrap.appendChild(dropZone);
+                toolsWrap.appendChild(scanNote);
+                wrap.appendChild(toolsWrap);
+                wrap.appendChild(scanInput);
+                wrap.appendChild(scanCameraInput);
+
+                const fieldsSet = new Set();
+                types.forEach(t => (FIELDS_BY_TYPE[t] || []).forEach(f => fieldsSet.add(f)));
+
+                const grid = document.createElement('div'); grid.className = 'form-grid';
+                const addField = (name, node) => { if (fieldsSet.has(name)) grid.appendChild(node); };
+
+                // Build elements
+                addField('nomor_spt', (()=>{ const d=document.createElement('div'); d.className='form-row'; d.innerHTML='<label>Nomor Surat SPT</label><input name="nomor_spt" placeholder="Nomornya saja (kosongkan jika belum ada)">'; return d; })());
+                addField('perihal', (()=>{ const d=document.createElement('div'); d.className='form-row'; d.innerHTML='<label>Perihal</label><textarea name="perihal" rows="2" placeholder="Contoh: Survei ..." style="resize:vertical;"></textarea>'; return d; })());
+                addField('dasar', (()=>{ const d=document.createElement('div'); d.className='form-row'; d.innerHTML='<label>Dasar</label><textarea name="dasar" rows="2" placeholder="Contoh: Surat dari ..." style="resize:vertical;"></textarea>'; return d; })());
+                addField('tanggal_spt', (()=>{ const d=document.createElement('div'); d.className='form-row'; d.innerHTML='<label>Tanggal SPT ditandatangani</label><input type="date" class="date-input" name="tanggal_spt">'; return d; })());
+
+                const dPergi=document.createElement('div'); dPergi.className='form-row'; dPergi.innerHTML='<label>Tanggal pergi</label><input type="date" class="date-input" name="tanggal_pergi">'; addField('tanggal_pergi', dPergi);
+                const dSampai=document.createElement('div'); dSampai.className='form-row'; dSampai.innerHTML='<label>Sampai tanggal</label><input type="date" class="date-input" name="sampai_tanggal">'; addField('sampai_tanggal', dSampai);
+                const dTotal=document.createElement('div'); dTotal.className='form-row'; dTotal.innerHTML='<label>Total hari</label><input type="number" min="1" name="total_hari" value="1">'; addField('total_hari', dTotal);
+                addField('pakai_kabid_lama', (()=>{ const d=document.createElement('div'); d.className='form-row'; d.innerHTML='<label>Nama Kabid</label><select name="pakai_kabid_lama"><option value="tidak">Anggi</option><option value="ya">DIandes</option></select>'; return d; })());
+
+                addField('tujuan', (()=>{ const d=document.createElement('div'); d.className='form-row'; d.innerHTML='<label>Tujuan pergi</label><select name="tujuan"><option value="">- Pilih -</option><option>Palembang</option><option>Prabumulih</option><option>Lainnya</option></select><div class="tujuan-custom" style="display:none; margin-top:6px;"><label>Tujuan lainnya</label><input name="tujuan_lainnya" placeholder="Contoh: Jakarta"></div>'; return d; })());
+                addField('detail_tujuan', (()=>{ const d=document.createElement('div'); d.className='form-row'; d.innerHTML='<label>Detail tujuan</label><select name="detail_tujuan"><option value="">- Pilih -</option><option>DL lainnya</option><option>Bimtek</option><option>Titik nol</option><option>Lainnya</option></select>'; return d; })());
+                addField('sumber_dana', (()=>{ const d=document.createElement('div'); d.className='form-row'; d.innerHTML='<label>Sumber dana</label><select name="sumber_dana"><option value="rutin">Rutin</option><option value="bidang">Bidang</option></select>'; return d; })());
+
+                addField('bulan_spt', (()=>{ const d=document.createElement('div'); d.className='form-row'; const months=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']; d.innerHTML='<label>Bulan SPT / SPPD</label><select name="bulan_spt"><option value="">Kosongkan</option>'+months.map(m=>`<option>${m}</option>`).join('')+'</select>'; return d; })());
+                addField('bulan_rincian_biaya', (()=>{ const d=document.createElement('div'); d.className='form-row'; const months=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']; d.innerHTML='<label>Bulan Rincian Biaya</label><select name="bulan_rincian_biaya"><option value="">pilih bulan</option>'+months.map(m=>`<option>${m}</option>`).join('')+'</select>'; return d; })());
+                addField('tahun_berkas', (()=>{ const d=document.createElement('div'); d.className='form-row'; d.innerHTML='<label>Tahun Berkas</label><select name="tahun_berkas"><option>2026</option><option>2025</option></select>'; return d; })());
+                addField('kpa', (()=>{ const d=document.createElement('div'); d.className='form-row'; d.innerHTML='<label>KPA</label><select name="kpa"><option>Kepala Bidang Cipta Karya</option><option>Kepala Dinas</option><option>Sekretaris Dinas</option><option>Kabid Lama</option></select>'; return d; })());
+                addField('tempat', (()=>{ const d=document.createElement('div'); d.className='form-row'; d.innerHTML='<label>Tempat</label><input name="tempat" placeholder="Contoh: Dinas Kesehatan Sumatera Selatan di Kota Palembang">'; return d; })());
+                addField('kepala_dinas', (()=>{ const d=document.createElement('div'); d.className='form-row'; d.innerHTML='<label>Kepala Dinas (SPT)</label><select name="kepala_dinas"><option value="efandri">Kak Efandrio sudah dilantik 🎉</option><option value="plt_efandri">Kak Efandrio pas masih PLT :(</option><option value="oben">Kak Oben</option></select>'; return d; })());
+
+                wrap.appendChild(grid);
+                wireDateInputs(wrap);
+                const setVal = (name, val) => { const el = wrap.querySelector(`[name="${name}"]`); if (!el || val === undefined || val === null) return; el.value = val; };
+                setVal('nomor_spt', formData.nomor_spt);
+                setVal('perihal', formData.perihal);
+                setVal('dasar', formData.dasar);
+                setVal('tanggal_spt', formData.tanggal_spt);
+                setVal('tanggal_pergi', formData.tanggal_pergi);
+                setVal('sampai_tanggal', formData.sampai_tanggal);
+                setVal('total_hari', formData.total_hari);
+                const tujuanVal = formData.tujuan === 'Prabumulih (DD)' ? 'Prabumulih' : formData.tujuan;
+                setVal('tujuan', tujuanVal);
+                setVal('tujuan_lainnya', formData.tujuan_lainnya);
+                setVal('detail_tujuan', formData.detail_tujuan);
+                setVal('sumber_dana', formData.sumber_dana);
+                setVal('bulan_spt', formData.bulan_spt);
+                setVal('bulan_rincian_biaya', formData.bulan_rincian_biaya);
+                setVal('tahun_berkas', formData.tahun_berkas);
+                setVal('kpa', formData.kpa);
+                setVal('tempat', formData.tempat);
+                setVal('kepala_dinas', formData.kepala_dinas);
+                setVal('pakai_kabid_lama', formData.pakai_kabid_lama || 'tidak');
+
+                const tujuanSelectEl = wrap.querySelector('select[name="tujuan"]');
+                const tujuanCustomWrap = wrap.querySelector('.tujuan-custom');
+                if (tujuanSelectEl && tujuanCustomWrap) {
+                    const toggleTujuanCustom = () => {
+                        tujuanCustomWrap.style.display = tujuanSelectEl.value === 'Lainnya' ? 'block' : 'none';
+                    };
+                    tujuanSelectEl.addEventListener('change', toggleTujuanCustom);
+                    toggleTujuanCustom();
+                }
+
+                if (fieldsSet.has('pegawai')){
+                    const empSel = employeeSelector(formData.employees || []);
+                    wrap.appendChild(empSel.el);
+                    wrap._getEmployees = empSel.get;
+                }
+                if (fieldsSet.has('pengeluaran_tambahan')){
+                    const extras = extrasSection(formData.extras || [], () => (wrap._getEmployees ? wrap._getEmployees() : []).map(x => x.nama));
+                    wrap.appendChild(extras.el);
+                    wrap._getExtras = extras.get;
+                }
+
+                if (types.includes('laporan')){
+                    const kesWrap = document.createElement('div');
+                    kesWrap.className='form-row';
+                    kesWrap.innerHTML = '<label>Kesimpulan</label>';
+                    const pointsBox = document.createElement('div'); pointsBox.style.display='flex'; pointsBox.style.flexDirection='column'; pointsBox.style.gap='12px';
+                    const btnAddPoint = document.createElement('button'); btnAddPoint.className='btn'; btnAddPoint.textContent='+ Tambah Kesimpulan'; btnAddPoint.type='button';
+                    const quills = [];
+                    function addPoint(initial=''){
+                        const holder=document.createElement('div');
+                        const ed=document.createElement('div'); ed.className='quill-editor';
+                        holder.appendChild(ed);
+                        pointsBox.appendChild(holder);
+                        const q=new Quill(ed, { theme: 'snow', modules: { toolbar: [['bold','italic','underline'], [{'list':'ordered'},{'list':'bullet'}], ['clean']] } });
+                        if (initial){ q.setText(initial); }
+                        quills.push(q);
+                    }
+                    btnAddPoint.onclick=()=>addPoint('');
+                    kesWrap.appendChild(pointsBox); kesWrap.appendChild(btnAddPoint);
+                    wrap.appendChild(kesWrap);
+                    const prevPoints = formData.poin_list || [];
+                    if (prevPoints.length){ prevPoints.forEach(p=>addPoint(p)); } else { addPoint(''); }
+                    wrap._getPoints = ()=> quills.map(q=> q.getText().trim()).filter(Boolean).slice(0,6);
+
+                    const fotoWrap = document.createElement('div'); fotoWrap.className='form-row';
+                    fotoWrap.innerHTML = '<label>Foto (JPG/PNG)</label>';
+                    const makeFile = (labelName)=>{
+                        const line=document.createElement('div'); line.style.display='flex'; line.style.alignItems='center'; line.style.gap='8px';
+                        const lbl=document.createElement('span'); lbl.textContent=labelName;
+                        const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*';
+                        const prev=document.createElement('img'); prev.style.maxWidth='160px'; prev.style.maxHeight='120px'; prev.style.display='none'; prev.style.border='1px solid #e5e7eb'; prev.style.borderRadius='4px';
+                        inp.onchange=(e)=>{
+                            const f=e.target.files[0]; if(!f) return; if(!f.type.startsWith('image/')){ alert('Untuk saat ini hanya gambar (JPG/PNG).'); return; }
+                            const r=new FileReader(); r.onload=()=>{ prev.src=r.result; prev.style.display='inline-block'; wrap._fotos[labelName.toLowerCase()] = r.result; }; r.readAsDataURL(f);
+                        };
+                        line.appendChild(lbl); line.appendChild(inp); line.appendChild(prev); return line;
+                    };
+                    wrap._fotos = {fot1: (formData.fotos||{}).fot1 || '', fot2: (formData.fotos||{}).fot2 || '', fot3: (formData.fotos||{}).fot3 || ''};
+                    const l1=makeFile('FOT1'); const l2=makeFile('FOT2'); const l3=makeFile('FOT3');
+                    fotoWrap.appendChild(l1); fotoWrap.appendChild(l2); fotoWrap.appendChild(l3);
+                    wrap.appendChild(fotoWrap);
+                }
+
+                const inPergi = wrap.querySelector('input[name="tanggal_pergi"]');
+                const inSampai = wrap.querySelector('input[name="sampai_tanggal"]');
+                const inTotal = wrap.querySelector('input[name="total_hari"]');
+                function recompute(){ if (!inPergi||!inSampai||!inTotal) return; const a=new Date(inPergi.value); const b=new Date(inSampai.value); if(!isNaN(a)&&!isNaN(b)){ const diff=Math.round((b-a)/(1000*60*60*24))+1; if(diff>0) inTotal.value=diff; }}
+                if (inPergi && inSampai){ inPergi.addEventListener('change',recompute); inSampai.addEventListener('change',recompute); }
+
+                if (types.length){
+                    const genBar=document.createElement('div'); genBar.className='form-actions'; genBar.style.marginTop='12px'; genBar.style.display='flex'; genBar.style.flexWrap='wrap'; genBar.style.gap='8px';
+                    const buildPayload = (endpoint) => {
+                    const payload = {
+                        nomor_spt: (wrap.querySelector('input[name="nomor_spt"]')||{}).value || ' ',
+                        perihal: (wrap.querySelector('textarea[name="perihal"]')||{}).value || ' ',
+                        dasar: (wrap.querySelector('textarea[name="dasar"]')||{}).value || ' ',
+                        tanggal_spt: (wrap.querySelector('input[name="tanggal_spt"]')||{}).value,
+                        tanggal_pergi: (wrap.querySelector('input[name="tanggal_pergi"]')||{}).value,
+                        sampai_tanggal: (wrap.querySelector('input[name="sampai_tanggal"]')||{}).value,
+                        total_hari: parseInt(((wrap.querySelector('input[name="total_hari"]')||{}).value)||'1',10),
+                        tujuan: (() => {
+                            const sel = (wrap.querySelector('select[name="tujuan"]')||{}).value || '';
+                            const custom = (wrap.querySelector('input[name="tujuan_lainnya"]')||{}).value || '';
+                            return sel === 'Lainnya' ? custom.trim() : sel;
+                        })(),
+                        detail_tujuan: (wrap.querySelector('select[name="detail_tujuan"]')||{}).value,
+                        sumber_dana: (wrap.querySelector('select[name="sumber_dana"]')||{}).value,
+                        pegawai_list: wrap._getEmployees? wrap._getEmployees(): [],
+                        pengeluaran_tambahan: wrap._getExtras? wrap._getExtras(): [],
+                        bulan_spt: (wrap.querySelector('select[name="bulan_spt"]')||{}).value,
+                        bulan_rincian_biaya: (wrap.querySelector('select[name="bulan_rincian_biaya"]')||{}).value,
+                        tahun_berkas: (wrap.querySelector('select[name="tahun_berkas"]')||{}).value,
+                        kpa: (wrap.querySelector('select[name="kpa"]')||{}).value,
+                        tempat: (wrap.querySelector('input[name="tempat"]')||{}).value,
+                        kepala_dinas: (wrap.querySelector('select[name="kepala_dinas"]')||{}).value,
+                        pakai_kabid_lama: (wrap.querySelector('select[name="pakai_kabid_lama"]')||{}).value || 'tidak',
+                    };
+                        if (endpoint==='laporan'){
+                            if (wrap._getPoints) payload.poin_list = wrap._getPoints();
+                            if (wrap._fotos) payload.fotos = { fot1: wrap._fotos.fot1, fot2: wrap._fotos.fot2, fot3: wrap._fotos.fot3 };
+                        }
+                        return payload;
+                    };
+
+                    const addGen=(label, endpoint)=>{
+                        const btn=document.createElement('button'); btn.className='btn btn-create'; btn.textContent=label; btn.onclick=async (e)=>{
+                            e.preventDefault();
+                            const payload = buildPayload(endpoint);
+                            const res = await fetch(`/api/generate/${endpoint}`, {method:'POST', headers:{'Content-Type':'application/json'}, credentials:'same-origin', body: JSON.stringify(payload)});
+                            if (!res.ok){ const t=await res.text(); alert('Gagal generate: '+t); return; }
+                            const blob = await res.blob();
+                            let filename = 'download';
+                            const cd = res.headers.get('Content-Disposition') || res.headers.get('content-disposition') || '';
+                            try {
+                                let m = cd.match(/filename\*=UTF-8''([^;]+)/i);
+                                if (m && m[1]) {
+                                    filename = decodeURIComponent(m[1]);
+                                } else {
+                                    m = cd.match(/filename="?([^";]+)"?/i);
+                                    if (m && m[1]) filename = m[1];
+                                }
+                            } catch (e) {}
+                            const url = URL.createObjectURL(blob);
+                            const a=document.createElement('a'); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+                        }; genBar.appendChild(btn);
+                    };
+                    types.forEach(t=>{
+                        if (t==='rincian_biaya') addGen('Buat Excel Rincian Biaya','rincian_biaya');
+                        else if (t==='pengeluaran_riil') addGen('Buat Daftar Pengeluaran Riil','pengeluaran_riil');
+                        else if (t==='spt') addGen('Buat SPT','spt');
+                        else if (t==='sppd_hal_1') addGen('Buat SPPD Hal.1','sppd_hal_1');
+                        else if (t==='permohonan_rutin') addGen('Buat Permohonan Rutin','permohonan_rutin');
+                        else if (t==='nota_dinas') addGen('Buat Nota Dinas','nota_dinas');
+                        else if (t==='laporan') addGen('Buat Laporan Perjalanan','laporan');
+                        else { const btn=document.createElement('button'); btn.className='btn'; btn.textContent=(namesMap[t]||t)+' (segera)'; btn.disabled=true; genBar.appendChild(btn); }
+                    });
+
+                    if (types.length > 1) {
+                        const zipBtn = document.createElement('button');
+                        zipBtn.className = 'btn btn-create';
+                        zipBtn.textContent = 'Download Semua File Sekaligus';
+                        zipBtn.style.background = '#0f766e';
+                        zipBtn.onclick = async (e) => {
+                            e.preventDefault();
+                            if (!window.JSZip) { alert('Gagal memuat library ZIP. Coba refresh halaman.'); return; }
+                            zipBtn.disabled = true;
+                            const original = zipBtn.textContent;
+                            zipBtn.textContent = 'Menyiapkan...';
+                            try {
+                                const zip = new JSZip();
+                                const usedNames = new Set();
+                                const makeUnique = (name) => {
+                                    if (!usedNames.has(name)) { usedNames.add(name); return name; }
+                                    const dot = name.lastIndexOf('.');
+                                    const base = dot>0? name.slice(0,dot): name;
+                                    const ext = dot>0? name.slice(dot): '';
+                                    let i=2, candidate;
+                                    do { candidate = `${base} (${i})${ext}`; i++; } while(usedNames.has(candidate));
+                                    usedNames.add(candidate); return candidate;
+                                };
+                                const tasks = types.map(async (endpoint) => {
+                                    const payload = buildPayload(endpoint);
+                                    const res = await fetch(`/api/generate/${endpoint}`, {method:'POST', headers:{'Content-Type':'application/json'}, credentials:'same-origin', body: JSON.stringify(payload)});
+                                    if (!res.ok) throw new Error(`Gagal generate ${endpoint}: ${res.status}`);
+                                    const blob = await res.blob();
+                                    let filename = 'download';
+                                    const cd = res.headers.get('Content-Disposition') || res.headers.get('content-disposition') || '';
+                                    try {
+                                        let m = cd.match(/filename\*=UTF-8''([^;]+)/i);
+                                        if (m && m[1]) {
+                                            filename = decodeURIComponent(m[1]);
+                                        } else {
+                                            m = cd.match(/filename="?([^";]+)"?/i);
+                                            if (m && m[1]) filename = m[1];
+                                        }
+                                    } catch (e) {}
+                                    filename = makeUnique(filename);
+                                    const buf = await blob.arrayBuffer();
+                                    zip.file(filename, buf);
+                                });
+                                await Promise.all(tasks);
+
+                                const perihalVal = (wrap.querySelector('textarea[name="perihal"]')||{}).value || '';
+                                const base4 = perihalVal.trim().split(/\s+/).filter(Boolean).slice(0,4).join(' ');
+                                const slug = (base4 || 'SPPD').toLowerCase().replace(/[^a-z0-9\s_-]+/g,'').replace(/\s+/g,'_');
+                                const zipName = `${slug}.zip`;
+
+                                const zipBlob = await zip.generateAsync({ type: 'blob' });
+                                const url = URL.createObjectURL(zipBlob);
+                                const a = document.createElement('a'); a.href = url; a.download = zipName; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+                            } catch (err) {
+                                console.error(err);
+                                alert('Gagal menyiapkan ZIP: ' + (err && err.message ? err.message : err));
+                            } finally {
+                                zipBtn.disabled = false; zipBtn.textContent = original;
+                            }
+                        };
+                        genBar.prepend(zipBtn);
+                    }
+
+                    wrap.appendChild(genBar);
+                }
+
+                const clearBar = document.createElement('div');
+                clearBar.className = 'form-clear';
+                clearBar.appendChild(clearBtn);
+                wrap.appendChild(clearBar);
+
+                if (!existing) formAnchor.appendChild(wrap);
+                updateCardButtonsForActiveTab();
+            }
+
+            renderGlobalForm({ skipCapture: true });
+
+        });
+    </script>
+
+</body>
+</html>
