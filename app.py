@@ -2,9 +2,15 @@ import os
 import urllib.parse
 import hashlib
 import logging
-from datetime import timedelta
+import json
+import sqlite3
+from datetime import datetime, timezone, timedelta
 from flask import Flask, send_from_directory, jsonify, request, send_file, session, redirect, url_for, render_template
 import io
+try:
+    import psycopg2
+except ImportError:
+    psycopg2 = None
 from generators import (
     generate_rincian_biaya,
     generate_pengeluaran_riil,
@@ -41,6 +47,160 @@ app.secret_key = os.environ.get('APP_SECRET', 'dev-secret-change-me')
 APP_PASSWORD = os.environ.get('APP_PASSWORD', '')
 SESSION_TTL_HOURS = int(os.environ.get('SESSION_TTL_HOURS', '12'))
 app.permanent_session_lifetime = timedelta(hours=SESSION_TTL_HOURS)
+
+
+def _utc_now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _normalize_draft(raw: dict) -> dict | None:
+    if not isinstance(raw, dict):
+        return None
+    draft_id = str(raw.get('id') or '').strip()
+    if not draft_id:
+        return None
+    title = str(raw.get('title') or '').strip() or 'Draft Tanpa Judul'
+    created_at = str(raw.get('createdAt') or raw.get('created_at') or '').strip() or _utc_now_iso()
+    updated_at = str(raw.get('updatedAt') or raw.get('updated_at') or '').strip() or created_at
+    workspace = raw.get('workspace')
+    if not isinstance(workspace, dict):
+        workspace = {}
+    return {
+        'id': draft_id,
+        'title': title,
+        'createdAt': created_at,
+        'updatedAt': updated_at,
+        'workspace': workspace,
+    }
+
+
+class DraftStore:
+    """Simple draft persistence with SQLite default and PostgreSQL optional via DATABASE_URL."""
+
+    def __init__(self):
+        raw_db_url = (os.environ.get('DRAFTS_DATABASE_URL') or os.environ.get('DATABASE_URL') or '').strip()
+        if raw_db_url.startswith('postgres://'):
+            raw_db_url = 'postgresql://' + raw_db_url[len('postgres://'):]
+        self.db_url = raw_db_url
+        self.sqlite_path = os.environ.get('DRAFTS_SQLITE_PATH', 'drafts_local.db')
+        self.backend = 'postgres' if self.db_url else 'sqlite'
+        self._ensure_schema()
+
+    def _connect(self):
+        if self.backend == 'postgres':
+            if psycopg2 is None:
+                raise RuntimeError('psycopg2-binary belum terpasang, tidak bisa pakai DATABASE_URL.')
+            return psycopg2.connect(self.db_url)
+        conn = sqlite3.connect(self.sqlite_path)
+        conn.row_factory = sqlite3.Row
+        return conn
+
+    def _ensure_schema(self):
+        ddl = (
+            "CREATE TABLE IF NOT EXISTS drafts ("
+            "id TEXT PRIMARY KEY,"
+            "title TEXT NOT NULL,"
+            "created_at TEXT NOT NULL,"
+            "updated_at TEXT NOT NULL,"
+            "workspace TEXT NOT NULL"
+            ");"
+        )
+        with self._connect() as conn:
+            with conn.cursor() if self.backend == 'postgres' else _nullcontext(conn.cursor()) as cur:
+                cur.execute(ddl)
+            conn.commit()
+
+    def list_drafts(self) -> list[dict]:
+        sql = "SELECT id, title, created_at, updated_at, workspace FROM drafts ORDER BY updated_at DESC"
+        with self._connect() as conn:
+            with conn.cursor() if self.backend == 'postgres' else _nullcontext(conn.cursor()) as cur:
+                cur.execute(sql)
+                rows = cur.fetchall()
+        drafts = []
+        for row in rows:
+            if self.backend == 'postgres':
+                draft_id, title, created_at, updated_at, workspace_raw = row
+            else:
+                draft_id = row['id']
+                title = row['title']
+                created_at = row['created_at']
+                updated_at = row['updated_at']
+                workspace_raw = row['workspace']
+            try:
+                workspace = json.loads(workspace_raw) if workspace_raw else {}
+                if not isinstance(workspace, dict):
+                    workspace = {}
+            except Exception:
+                workspace = {}
+            drafts.append({
+                'id': str(draft_id),
+                'title': str(title or '').strip() or 'Draft Tanpa Judul',
+                'createdAt': str(created_at or ''),
+                'updatedAt': str(updated_at or created_at or ''),
+                'workspace': workspace,
+            })
+        return drafts
+
+    def replace_all(self, drafts: list[dict]) -> int:
+        clean: list[dict] = []
+        for item in drafts or []:
+            norm = _normalize_draft(item)
+            if norm is not None:
+                clean.append(norm)
+
+        with self._connect() as conn:
+            with conn.cursor() if self.backend == 'postgres' else _nullcontext(conn.cursor()) as cur:
+                cur.execute("DELETE FROM drafts")
+                if clean:
+                    if self.backend == 'postgres':
+                        cur.executemany(
+                            "INSERT INTO drafts (id, title, created_at, updated_at, workspace) VALUES (%s, %s, %s, %s, %s)",
+                            [
+                                (
+                                    d['id'],
+                                    d['title'],
+                                    d['createdAt'],
+                                    d['updatedAt'],
+                                    json.dumps(d['workspace'], ensure_ascii=False),
+                                )
+                                for d in clean
+                            ],
+                        )
+                    else:
+                        cur.executemany(
+                            "INSERT INTO drafts (id, title, created_at, updated_at, workspace) VALUES (?, ?, ?, ?, ?)",
+                            [
+                                (
+                                    d['id'],
+                                    d['title'],
+                                    d['createdAt'],
+                                    d['updatedAt'],
+                                    json.dumps(d['workspace'], ensure_ascii=False),
+                                )
+                                for d in clean
+                            ],
+                        )
+            conn.commit()
+        return len(clean)
+
+
+class _nullcontext:
+    """Tiny context manager helper to keep cursor handling consistent across backends."""
+
+    def __init__(self, value):
+        self.value = value
+
+    def __enter__(self):
+        return self.value
+
+    def __exit__(self, exc_type, exc, tb):
+        try:
+            self.value.close()
+        except Exception:
+            pass
+
+
+draft_store = DraftStore()
 
 
 def _password_fingerprint() -> str:
@@ -118,6 +278,30 @@ def api_employees():
     q = request.args.get('q', '')
     items = search_employees(q)
     return jsonify(items)
+
+
+@app.get('/api/drafts')
+def api_drafts_list():
+    try:
+        drafts = draft_store.list_drafts()
+        return jsonify({'drafts': drafts, 'backend': draft_store.backend})
+    except Exception as exc:
+        logging.exception('Gagal membaca draft cloud')
+        return jsonify({'error': f'Gagal membaca draft: {exc}'}), 500
+
+
+@app.post('/api/drafts/sync')
+def api_drafts_sync():
+    payload = request.get_json(force=True, silent=True) or {}
+    drafts = payload.get('drafts')
+    if not isinstance(drafts, list):
+        return jsonify({'error': 'Payload drafts harus berupa array.'}), 400
+    try:
+        count = draft_store.replace_all(drafts)
+        return jsonify({'ok': True, 'count': count, 'backend': draft_store.backend})
+    except Exception as exc:
+        logging.exception('Gagal sinkron draft cloud')
+        return jsonify({'error': f'Gagal sinkron draft: {exc}'}), 500
 
 
 @app.post('/api/scan/spt')

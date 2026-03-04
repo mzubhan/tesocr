@@ -1619,6 +1619,7 @@
             const KNOWN_DOC_TYPES = new Set(Object.keys(DOC_TYPE_LABELS));
             const DRAFTS_STORAGE_KEY = 'portal_spt_drafts_v1';
             const DRAFT_SCHEMA_VERSION = 1;
+            let cloudDraftSyncTimer = null;
 
             let nextTabId = 1;
 
@@ -1700,46 +1701,130 @@
                 };
             }
 
+            function normalizeDraftList(listLike) {
+                if (!Array.isArray(listLike)) return [];
+                return listLike
+                    .map((draft) => {
+                        if (!draft || typeof draft !== 'object') return null;
+                        const id = String(draft.id || '').trim();
+                        if (!id) return null;
+                        const workspaceRaw = draft.workspace && typeof draft.workspace === 'object' ? draft.workspace : {};
+                        const tabsRaw = Array.isArray(workspaceRaw.tabs) ? workspaceRaw.tabs : [];
+                        const tabs = tabsRaw.map(sanitizeTabDraft);
+                        const activeRaw = parseInt(workspaceRaw.activeTab, 10);
+                        const activeTab = Number.isFinite(activeRaw) ? activeRaw : 0;
+                        return {
+                            id,
+                            title: String(draft.title || '').trim() || 'Draft Tanpa Judul',
+                            createdAt: String(draft.createdAt || draft.updatedAt || ''),
+                            updatedAt: String(draft.updatedAt || draft.createdAt || ''),
+                            workspace: {
+                                version: workspaceRaw.version || DRAFT_SCHEMA_VERSION,
+                                activeTab,
+                                tabs,
+                            },
+                        };
+                    })
+                    .filter(Boolean)
+                    .sort((a, b) => parseDateValue(b.updatedAt) - parseDateValue(a.updatedAt));
+            }
+
+            async function fetchDraftsFromCloud() {
+                try {
+                    const res = await fetch('/api/drafts', { credentials: 'same-origin' });
+                    if (res.status === 401) {
+                        try {
+                            const data = await res.json();
+                            if (data && data.login) {
+                                const next = encodeURIComponent(location.pathname + location.search);
+                                location.href = `${data.login}?next=${next}`;
+                            }
+                        } catch (_) {}
+                        return { ok: false, drafts: [] };
+                    }
+                    if (!res.ok) {
+                        console.warn('Gagal membaca draft cloud:', res.status);
+                        return { ok: false, drafts: [] };
+                    }
+                    const payload = await res.json();
+                    return { ok: true, drafts: normalizeDraftList(payload && payload.drafts) };
+                } catch (err) {
+                    console.warn('Draft cloud tidak tersedia, pakai draft lokal:', err);
+                    return { ok: false, drafts: [] };
+                }
+            }
+
+            async function pushDraftsToCloud(drafts) {
+                try {
+                    const res = await fetch('/api/drafts/sync', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'same-origin',
+                        body: JSON.stringify({ drafts }),
+                    });
+                    if (res.status === 401) {
+                        try {
+                            const data = await res.json();
+                            if (data && data.login) {
+                                const next = encodeURIComponent(location.pathname + location.search);
+                                location.href = `${data.login}?next=${next}`;
+                            }
+                        } catch (_) {}
+                        return false;
+                    }
+                    if (!res.ok) {
+                        console.warn('Gagal sinkron draft cloud:', res.status);
+                        return false;
+                    }
+                    return true;
+                } catch (err) {
+                    console.warn('Sinkron draft cloud gagal:', err);
+                    return false;
+                }
+            }
+
+            function queueCloudDraftSync(drafts) {
+                const normalized = normalizeDraftList(drafts);
+                if (cloudDraftSyncTimer) clearTimeout(cloudDraftSyncTimer);
+                cloudDraftSyncTimer = setTimeout(() => {
+                    pushDraftsToCloud(normalized);
+                }, 500);
+            }
+
+            async function hydrateDraftsFromCloud() {
+                const localDrafts = readDraftsFromStorage();
+                const cloud = await fetchDraftsFromCloud();
+                if (!cloud.ok) return;
+
+                if (cloud.drafts.length) {
+                    writeDraftsToStorage(cloud.drafts, { syncCloud: false });
+                    return;
+                }
+
+                if (localDrafts.length) {
+                    await pushDraftsToCloud(localDrafts);
+                }
+            }
+
             function readDraftsFromStorage() {
-                // Adapter draft: saat ini localStorage, nanti bisa diganti ke API cloud.
                 try {
                     const raw = localStorage.getItem(DRAFTS_STORAGE_KEY);
                     if (!raw) return [];
                     const parsed = JSON.parse(raw);
-                    if (!Array.isArray(parsed)) return [];
-                    return parsed
-                        .map((draft) => {
-                            if (!draft || typeof draft !== 'object') return null;
-                            const id = String(draft.id || '').trim();
-                            if (!id) return null;
-                            const workspaceRaw = draft.workspace && typeof draft.workspace === 'object' ? draft.workspace : {};
-                            const tabsRaw = Array.isArray(workspaceRaw.tabs) ? workspaceRaw.tabs : [];
-                            const tabs = tabsRaw.map(sanitizeTabDraft);
-                            const activeRaw = parseInt(workspaceRaw.activeTab, 10);
-                            const activeTab = Number.isFinite(activeRaw) ? activeRaw : 0;
-                            return {
-                                id,
-                                title: String(draft.title || '').trim() || 'Draft Tanpa Judul',
-                                createdAt: String(draft.createdAt || draft.updatedAt || ''),
-                                updatedAt: String(draft.updatedAt || draft.createdAt || ''),
-                                workspace: {
-                                    version: workspaceRaw.version || DRAFT_SCHEMA_VERSION,
-                                    activeTab,
-                                    tabs,
-                                },
-                            };
-                        })
-                        .filter(Boolean)
-                        .sort((a, b) => parseDateValue(b.updatedAt) - parseDateValue(a.updatedAt));
+                    return normalizeDraftList(parsed);
                 } catch (err) {
                     console.warn('Gagal membaca draft lokal:', err);
                     return [];
                 }
             }
 
-            function writeDraftsToStorage(drafts) {
+            function writeDraftsToStorage(drafts, options = {}) {
+                const normalized = normalizeDraftList(drafts);
                 try {
-                    localStorage.setItem(DRAFTS_STORAGE_KEY, JSON.stringify(drafts));
+                    localStorage.setItem(DRAFTS_STORAGE_KEY, JSON.stringify(normalized));
+                    if (options.syncCloud !== false) {
+                        queueCloudDraftSync(normalized);
+                    }
                     return { ok: true };
                 } catch (err) {
                     return { ok: false, error: err };
@@ -3085,7 +3170,10 @@
                 updateCardButtonsForActiveTab();
             }
 
-            renderGlobalForm({ skipCapture: true });
+            (async () => {
+                await hydrateDraftsFromCloud();
+                renderGlobalForm({ skipCapture: true });
+            })();
 
         });
     </script>

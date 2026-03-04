@@ -8,3 +8,4 @@ pypdf>=3.0.0
 pillow>=10.4.0
 pytesseract>=0.3.10
 pillow-heif>=0.15.0
+psycopg2-binary==2.9.10

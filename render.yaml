@@ -11,5 +11,7 @@ services:
         generateValue: true
       - key: APP_PASSWORD
         sync: false
+      - key: DATABASE_URL
+        sync: false
       - key: SESSION_TTL_HOURS
         value: "12"
