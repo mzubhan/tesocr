@@ -5,6 +5,7 @@ import logging
 import json
 import sqlite3
 from datetime import datetime, timezone, timedelta
+from typing import Any, Dict, List, Optional
 from flask import Flask, send_from_directory, jsonify, request, send_file, session, redirect, url_for, render_template
 import io
 try:
@@ -53,7 +54,7 @@ def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def _normalize_draft(raw: dict) -> dict | None:
+def _normalize_draft(raw: Any) -> Optional[Dict[str, Any]]:
     if not isinstance(raw, dict):
         return None
     draft_id = str(raw.get('id') or '').strip()
@@ -84,7 +85,16 @@ class DraftStore:
         self.db_url = raw_db_url
         self.sqlite_path = os.environ.get('DRAFTS_SQLITE_PATH', 'drafts_local.db')
         self.backend = 'postgres' if self.db_url else 'sqlite'
-        self._ensure_schema()
+        try:
+            self._ensure_schema()
+        except Exception:
+            if self.backend != 'postgres':
+                raise
+            # Jangan mematikan app saat koneksi cloud DB gagal.
+            logging.exception('Gagal inisialisasi draft store PostgreSQL, fallback ke SQLite lokal.')
+            self.backend = 'sqlite'
+            self.db_url = ''
+            self._ensure_schema()
 
     def _connect(self):
         if self.backend == 'postgres':
@@ -110,7 +120,7 @@ class DraftStore:
                 cur.execute(ddl)
             conn.commit()
 
-    def list_drafts(self) -> list[dict]:
+    def list_drafts(self) -> List[Dict[str, Any]]:
         sql = "SELECT id, title, created_at, updated_at, workspace FROM drafts ORDER BY updated_at DESC"
         with self._connect() as conn:
             with conn.cursor() if self.backend == 'postgres' else _nullcontext(conn.cursor()) as cur:
@@ -141,8 +151,8 @@ class DraftStore:
             })
         return drafts
 
-    def replace_all(self, drafts: list[dict]) -> int:
-        clean: list[dict] = []
+    def replace_all(self, drafts: List[Dict[str, Any]]) -> int:
+        clean: List[Dict[str, Any]] = []
         for item in drafts or []:
             norm = _normalize_draft(item)
             if norm is not None:
