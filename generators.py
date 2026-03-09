@@ -170,10 +170,18 @@ def generate_rincian_biaya(payload: Dict[str, Any]) -> Tuple[bytes, str, str]:
             dmy = format_date_id(_apply_year(t_mulai, tahun_berkas)).split()
             bulan_tahun = ' '.join(dmy[1:]) if len(dmy) >= 3 else format_date_id(_apply_year(t_mulai, tahun_berkas))
             sheet['D4'].value = f"      {bulan_tahun}"
-        # I26 override jika Bulan Rincian Biaya dipilih
+        # I26: selalu ganti token THNX -> tahun berkas.
+        # Jika Bulan Rincian Biaya dipilih, THNX diganti menjadi "<Bulan> <Tahun>".
         brb = (payload.get('bulan_rincian_biaya') or '').strip()
+        i26_value = str(sheet['I26'].value or 'Yang menerima,      THNX')
         if brb and brb.lower() != 'pilih bulan':
-            sheet['I26'].value = f"Yang menerima,      {brb.capitalize()} {tahun_berkas}"
+            replacement = f"{brb.capitalize()} {tahun_berkas}"
+        else:
+            replacement = str(tahun_berkas)
+        if 'THNX' in i26_value:
+            sheet['I26'].value = i26_value.replace('THNX', replacement)
+        elif brb and brb.lower() != 'pilih bulan':
+            sheet['I26'].value = f"Yang menerima,      {replacement}"
         # D3: jika tanggal SPT kosong, bagian nomor dipaksa 8 spasi.
         nomor_d3 = ' ' * 8 if ttd is None else nomor_spt
         sheet['D3'].value = f"600/{nomor_d3}/SPPD/{tahun_berkas}"
