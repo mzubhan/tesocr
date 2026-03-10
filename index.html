@@ -1818,16 +1818,102 @@
                 }
             }
 
+            function isQuotaExceededError(err) {
+                if (!err) return false;
+                const name = String(err.name || '');
+                if (name === 'QuotaExceededError' || name === 'NS_ERROR_DOM_QUOTA_REACHED') return true;
+                if (typeof err.code === 'number' && (err.code === 22 || err.code === 1014)) return true;
+                const message = String(err.message || '').toLowerCase();
+                return message.includes('quota') || message.includes('storage');
+            }
+
+            function cloneDraftList(drafts) {
+                try {
+                    if (typeof structuredClone === 'function') {
+                        return structuredClone(drafts);
+                    }
+                } catch (_) {}
+                return JSON.parse(JSON.stringify(drafts));
+            }
+
+            function clearDraftPhotosInPlace(draft) {
+                const tabs = Array.isArray(draft?.workspace?.tabs) ? draft.workspace.tabs : [];
+                let clearedCount = 0;
+                tabs.forEach((tab) => {
+                    const formData = tab && typeof tab.formData === 'object' ? tab.formData : null;
+                    const fotos = formData && typeof formData.fotos === 'object' ? formData.fotos : null;
+                    if (!fotos) return;
+                    const hasPhoto = ['fot1', 'fot2', 'fot3'].some((key) => typeof fotos[key] === 'string' && fotos[key].trim());
+                    if (!hasPhoto) return;
+                    tab.formData = {
+                        ...formData,
+                        fotos: { fot1: '', fot2: '', fot3: '' },
+                    };
+                    clearedCount += 1;
+                });
+                return clearedCount;
+            }
+
             function writeDraftsToStorage(drafts, options = {}) {
                 const normalized = normalizeDraftList(drafts);
+                const shouldSyncCloud = options.syncCloud !== false;
+                const persistLocal = (items) => {
+                    localStorage.setItem(DRAFTS_STORAGE_KEY, JSON.stringify(items));
+                };
                 try {
-                    localStorage.setItem(DRAFTS_STORAGE_KEY, JSON.stringify(normalized));
-                    if (options.syncCloud !== false) {
+                    persistLocal(normalized);
+                    if (shouldSyncCloud) {
                         queueCloudDraftSync(normalized);
                     }
                     return { ok: true };
                 } catch (err) {
-                    return { ok: false, error: err };
+                    if (!isQuotaExceededError(err)) {
+                        return { ok: false, error: err };
+                    }
+
+                    let optimized = [];
+                    try {
+                        optimized = cloneDraftList(normalized);
+                    } catch (cloneErr) {
+                        return { ok: false, error: cloneErr };
+                    }
+
+                    let clearedPhotoTabs = 0;
+                    for (let idx = optimized.length - 1; idx >= 0; idx -= 1) {
+                        const clearedThisDraft = clearDraftPhotosInPlace(optimized[idx]);
+                        if (!clearedThisDraft) continue;
+                        clearedPhotoTabs += clearedThisDraft;
+                        try {
+                            persistLocal(optimized);
+                            if (shouldSyncCloud) {
+                                queueCloudDraftSync(normalized);
+                            }
+                            return { ok: true, optimized: true, clearedPhotoTabs, droppedDrafts: 0 };
+                        } catch (retryErr) {
+                            if (!isQuotaExceededError(retryErr)) {
+                                return { ok: false, error: retryErr };
+                            }
+                        }
+                    }
+
+                    let droppedDrafts = 0;
+                    while (optimized.length > 1) {
+                        optimized.pop();
+                        droppedDrafts += 1;
+                        try {
+                            persistLocal(optimized);
+                            if (shouldSyncCloud) {
+                                queueCloudDraftSync(normalized);
+                            }
+                            return { ok: true, optimized: true, clearedPhotoTabs, droppedDrafts };
+                        } catch (retryErr) {
+                            if (!isQuotaExceededError(retryErr)) {
+                                return { ok: false, error: retryErr };
+                            }
+                        }
+                    }
+
+                    return { ok: false, error: err, quotaExceeded: true };
                 }
             }
 
@@ -1927,11 +2013,18 @@
 
                 const writeResult = writeDraftsToStorage(drafts);
                 if (!writeResult.ok) {
-                    return { ok: false, error: writeResult.error };
+                    return { ok: false, error: writeResult.error, quotaExceeded: Boolean(writeResult.quotaExceeded) };
                 }
                 state.currentDraftId = targetId;
                 state.draftTitle = title;
-                return { ok: true, isNew, title };
+                return {
+                    ok: true,
+                    isNew,
+                    title,
+                    storageOptimized: Boolean(writeResult.optimized),
+                    clearedPhotoTabs: writeResult.clearedPhotoTabs || 0,
+                    droppedDrafts: writeResult.droppedDrafts || 0,
+                };
             }
 
             function loadWorkspaceDraft(draftId) {
@@ -2617,8 +2710,21 @@
                     syncStateFromForm(formEl);
                     const result = saveWorkspaceDraft();
                     if (!result.ok) {
-                        alert('Gagal menyimpan draft lokal. Penyimpanan browser mungkin penuh.');
+                        if (result.quotaExceeded) {
+                            alert('Gagal menyimpan draft lokal karena penyimpanan browser sudah penuh. Hapus beberapa draft lama lalu coba lagi.');
+                        } else {
+                            alert('Gagal menyimpan draft lokal.');
+                        }
                         return;
+                    }
+                    if (result.storageOptimized) {
+                        const notes = [];
+                        if (result.clearedPhotoTabs > 0) notes.push(`foto pada ${result.clearedPhotoTabs} tab draft lama dikosongkan`);
+                        if (result.droppedDrafts > 0) notes.push(`${result.droppedDrafts} draft terlama dilepas dari penyimpanan lokal`);
+                        const detail = notes.length
+                            ? `Sistem otomatis ${notes.join(' dan ')} agar draft tetap tersimpan.`
+                            : 'Sistem otomatis menghemat ruang penyimpanan agar draft tetap tersimpan.';
+                        alert(`Draft berhasil disimpan, tapi penyimpanan browser hampir penuh. ${detail}`);
                     }
                     renderGlobalForm({ skipCapture: true });
                     updateCardButtonsForActiveTab();
@@ -2634,8 +2740,21 @@
                     syncStateFromForm(formEl);
                     const result = saveWorkspaceDraft({ forceNew: true });
                     if (!result.ok) {
-                        alert('Gagal menyimpan draft lokal. Penyimpanan browser mungkin penuh.');
+                        if (result.quotaExceeded) {
+                            alert('Gagal menyimpan draft lokal karena penyimpanan browser sudah penuh. Hapus beberapa draft lama lalu coba lagi.');
+                        } else {
+                            alert('Gagal menyimpan draft lokal.');
+                        }
                         return;
+                    }
+                    if (result.storageOptimized) {
+                        const notes = [];
+                        if (result.clearedPhotoTabs > 0) notes.push(`foto pada ${result.clearedPhotoTabs} tab draft lama dikosongkan`);
+                        if (result.droppedDrafts > 0) notes.push(`${result.droppedDrafts} draft terlama dilepas dari penyimpanan lokal`);
+                        const detail = notes.length
+                            ? `Sistem otomatis ${notes.join(' dan ')} agar draft tetap tersimpan.`
+                            : 'Sistem otomatis menghemat ruang penyimpanan agar draft tetap tersimpan.';
+                        alert(`Draft berhasil disimpan, tapi penyimpanan browser hampir penuh. ${detail}`);
                     }
                     renderGlobalForm({ skipCapture: true });
                     updateCardButtonsForActiveTab();
