@@ -1,0 +1,528 @@
+/* Variabel Warna Tema Naruto */
+:root {
+    --naruto-orange: #ff5e00;
+    --rasengan-blue: #00aaff;
+    --bg-dark: #111111;
+    --card-bg: rgba(25, 25, 30, 0.95);
+    --text-primary: #ffffff;
+    --text-secondary: #cccccc;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: var(--bg-dark);
+    background-image: 
+        radial-gradient(circle at 50% 50%, rgba(255, 94, 0, 0.1) 0%, transparent 50%),
+        linear-gradient(45deg, #000 25%, transparent 25%, transparent 75%, #000 75%, #000),
+        linear-gradient(45deg, #000 25%, transparent 25%, transparent 75%, #000 75%, #000);
+    background-size: 100% 100%, 20px 20px, 20px 20px;
+    background-position: 0 0, 0 0, 10px 10px;
+    color: var(--text-primary);
+    min-height: 100vh;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    animation: bgScroll 20s linear infinite;
+}
+
+.container {
+    width: 100%;
+    max-width: 800px;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+header h1 {
+    font-family: 'Permanent Marker', cursive;
+    font-size: 3em;
+    background: linear-gradient(to bottom, #ffcc00, #ff5e00);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 0.5rem;
+    filter: drop-shadow(2px 2px 0px #000);
+}
+
+.subtitle {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+}
+
+.card {
+    background: var(--card-bg);
+    border: 3px solid var(--naruto-orange);
+    border-radius: 4px; /* Sudut tajam ala scroll */
+    padding: 2.5rem;
+    box-shadow: 0 0 20px rgba(255, 94, 0, 0.3);
+    position: relative;
+    overflow: hidden;
+    animation: ninjaEntrance 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.card::before {
+    /* Hiasan atas ala ikat kepala */
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 6px;
+    background: linear-gradient(90deg, #333, #888, #333);
+    border-bottom: 1px solid #000;
+}
+
+.upload-section {
+    margin-bottom: 30px;
+}
+
+.upload-area {
+    border: 2px dashed var(--naruto-orange);
+    border-radius: 12px;
+    padding: 3rem 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: rgba(255, 94, 0, 0.05);
+}
+
+.upload-area:hover {
+    border-color: var(--rasengan-blue);
+    box-shadow: 0 0 20px rgba(0, 170, 255, 0.2);
+    background: rgba(0, 170, 255, 0.05);
+}
+
+.upload-area.drag-over {
+    border-color: var(--rasengan-blue);
+    background: rgba(0, 170, 255, 0.1);
+    transform: scale(1.02);
+}
+
+.upload-icon {
+    width: 64px;
+    height: 64px;
+    stroke: var(--naruto-orange);
+    margin-bottom: 1rem;
+    animation: floatIcon 3s ease-in-out infinite;
+}
+
+.upload-text {
+    font-size: 1.2rem;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.upload-subtext {
+    color: var(--text-secondary);
+    font-size: 0.9em;
+}
+
+.file-info {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--naruto-orange);
+    color: var(--text-primary);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 15px;
+    animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.file-size {
+    color: var(--text-secondary);
+    font-size: 0.9em;
+}
+
+.btn-remove {
+    background: transparent;
+    color: #ff5555;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2em;
+}
+
+.btn-remove:hover {
+    color: #ff8888;
+    text-shadow: 0 0 10px #ff5555;
+}
+
+.options-section {
+    margin-bottom: 30px;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    border-left: 4px solid var(--rasengan-blue);
+}
+
+.options-section h3 {
+    margin-bottom: 15px;
+    color: var(--rasengan-blue);
+    font-family: 'Permanent Marker', cursive;
+    font-size: 1.1rem;
+}
+
+.checkbox-label {
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+    accent-color: var(--naruto-orange);
+    width: 18px;
+    height: 18px;
+}
+
+.radio-label {
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    cursor: pointer;
+}
+
+.radio-label:hover {
+    color: var(--naruto-orange);
+    transform: translateX(10px);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.radio-label input[type="radio"] {
+    accent-color: var(--naruto-orange);
+    width: 18px;
+    height: 18px;
+}
+
+.btn-convert {
+    width: 100%;
+    padding: 18px;
+    background: linear-gradient(135deg, var(--naruto-orange), #ff8800);
+    color: #fff;
+    border: 2px solid #fff;
+    border-radius: 30px; /* Rounded like a pill/scroll end */
+    font-family: 'Permanent Marker', cursive;
+    font-size: 1.2rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 0 #b34200; /* 3D effect */
+}
+
+.btn-convert:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 0 #b34200, 0 0 20px rgba(255, 94, 0, 0.6);
+    animation: chakraPulse 1.5s infinite;
+}
+
+.btn-convert:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #333;
+    color: #666;
+    box-shadow: none;
+    border-color: #555;
+}
+
+.btn-save {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, var(--rasengan-blue), #0078d4);
+    color: #fff;
+    border: 2px solid #fff;
+    border-radius: 30px;
+    font-family: 'Permanent Marker', cursive;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 0 #00508f;
+}
+
+.btn-save:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 0 #00508f, 0 0 18px rgba(0, 170, 255, 0.45);
+}
+
+.btn-save:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #333;
+    color: #666;
+    box-shadow: none;
+    border-color: #555;
+}
+
+.saved-section {
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(0, 170, 255, 0.35);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 22px;
+}
+
+.saved-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.saved-header h3 {
+    color: var(--rasengan-blue);
+    font-family: 'Permanent Marker', cursive;
+    font-size: 1rem;
+}
+
+.btn-clear-saved {
+    background: transparent;
+    color: #ff8888;
+    border: 1px solid #ff5555;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-clear-saved:hover:not(:disabled) {
+    color: #fff;
+    background: rgba(255, 68, 68, 0.2);
+}
+
+.btn-clear-saved:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.saved-empty {
+    color: var(--text-secondary);
+    font-size: 0.92rem;
+}
+
+.saved-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.saved-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.saved-item-main {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.saved-item-title {
+    color: #f5f5f5;
+    font-weight: 600;
+    word-break: break-word;
+}
+
+.saved-item-meta {
+    color: #a8a8a8;
+    font-size: 0.82rem;
+}
+
+.btn-delete-saved {
+    background: transparent;
+    color: #ff6f6f;
+    border: 1px solid #ff6f6f;
+    border-radius: 6px;
+    padding: 5px 9px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.btn-delete-saved:hover {
+    color: #fff;
+    background: rgba(255, 111, 111, 0.2);
+}
+
+.progress-section {
+    margin-bottom: 20px;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(
+        45deg, 
+        var(--naruto-orange) 25%, 
+        #ff8800 25%, 
+        #ff8800 50%, 
+        var(--naruto-orange) 50%, 
+        var(--naruto-orange) 75%, 
+        #ff8800 75%, 
+        #ff8800
+    );
+    background-size: 20px 20px;
+    box-shadow: 0 0 15px var(--naruto-orange);
+    width: 0%;
+    transition: width 0.3s ease;
+    animation: chakraFlow 0.5s linear infinite;
+}
+
+.progress-text {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.9em;
+}
+
+.info-section {
+    margin-top: 30px;
+    padding-top: 30px;
+    border-top: 2px dashed #333;
+}
+
+.info-section h3 {
+    margin-bottom: 15px;
+    color: var(--rasengan-blue);
+    font-family: 'Permanent Marker', cursive;
+    font-size: 1.1rem;
+}
+
+.info-section ol {
+    margin-left: 20px;
+    margin-bottom: 20px;
+}
+
+.info-section li {
+    margin-bottom: 10px;
+    line-height: 1.6;
+    color: #555;
+}
+
+.warning-box {
+    background: rgba(255, 0, 0, 0.1);
+    border: 1px solid #ff0000;
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 20px;
+}
+
+.warning-box strong {
+    display: block;
+    margin-bottom: 8px;
+    color: #ff4444;
+}
+
+.warning-box p {
+    color: #ff8888;
+    line-height: 1.6;
+}
+
+footer {
+    text-align: center;
+    color: #555;
+    margin-top: 30px;
+    font-size: 0.8rem;
+}
+
+@media (max-width: 768px) {
+    .card {
+        padding: 25px;
+    }
+
+    header h1 {
+        font-size: 1.8em;
+    }
+
+    .upload-area {
+        padding: 40px 15px;
+    }
+
+    .saved-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .btn-delete-saved {
+        align-self: flex-end;
+    }
+}
+
+/* --- ANIMASI JUTSU --- */
+
+@keyframes ninjaEntrance {
+    0% { 
+        opacity: 0;
+        transform: translateY(-100px) scale(0.8);
+    }
+    100% { 
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes floatIcon {
+    0%, 100% { transform: translateY(0); filter: drop-shadow(0 0 5px rgba(255, 94, 0, 0.5)); }
+    50% { transform: translateY(-15px); filter: drop-shadow(0 15px 10px rgba(255, 94, 0, 0.2)); }
+}
+
+@keyframes chakraPulse {
+    0% { box-shadow: 0 6px 0 #b34200, 0 0 0 0 rgba(255, 94, 0, 0.7); }
+    70% { box-shadow: 0 6px 0 #b34200, 0 0 0 15px rgba(255, 94, 0, 0); }
+    100% { box-shadow: 0 6px 0 #b34200, 0 0 0 0 rgba(255, 94, 0, 0); }
+}
+
+@keyframes chakraFlow {
+    0% { background-position: 0 0; }
+    100% { background-position: 20px 20px; }
+}
+
+@keyframes bgScroll {
+    0% { background-position: 50% 50%, 0 0, 10px 10px; }
+    100% { background-position: 50% 50%, 40px 40px, 50px 50px; }
+}
+
+@keyframes popIn {
+    0% { opacity: 0; transform: scale(0.5); }
+    100% { opacity: 1; transform: scale(1); }
+}

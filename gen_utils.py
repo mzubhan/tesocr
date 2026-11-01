@@ -161,6 +161,8 @@ def panggil_biaya_dinas(tujuan: str, detail: str) -> int:
     if tujuan:
         tujuan = re.sub(r'\s*\(.*\)\s*$', '', tujuan).strip()
     detail = (detail or '').strip().lower()
+    if detail == '100000':
+        return 100_000
     if tujuan == 'palembang' and 'bimtek' in detail:
         return 110_000
     if tujuan == 'palembang':

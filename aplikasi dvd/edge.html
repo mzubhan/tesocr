@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="id">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Edge Colors — Warna dari tepi</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<header><a class="brand" href="index.html"><span class="brand-icon">▥</span> bounce<span class="muted">studio</span></a><span class="header-note">A little accident. A new canvas.</span><span class="local-badge"><i></i> Semua diproses di perangkatmu</span></header>
+<nav class="studio-tabs" aria-label="Aplikasi"><a href="index.html">↗ Bounce</a><a href="edge.html" aria-current="page">▥ Edge Colors</a></nav>
+<main>
+<section class="intro"><div class="eyebrow">EDGE → COLOR</div><h1>Warna di tepi, <em>jadi cerita baru.</em></h1><p>Ambil warna dari satu sisi foto atau video, lalu bentangkan menjadi garis yang memenuhi canvas.</p></section>
+<div class="workspace"><aside>
+<section class="panel"><div class="section-heading"><h2><span>01</span> Foto atau video sumber</h2></div>
+<label class="upload" id="edgeDrop"><input id="edgeFile" type="file" accept="image/*,video/*"><span class="upload-icon">＋</span><strong>Klik atau drop foto / video</strong><small>JPG, PNG, WEBP, MP4, WebM · Satu sumber</small></label>
+<div class="edge-source" id="edgeSource" hidden><img id="edgeImage" alt="Foto sumber" hidden><video id="edgeVideo" controls muted loop playsinline hidden></video><p id="edgeSourceInfo" class="hint"></p></div></section>
+<section class="panel"><div class="section-heading"><h2><span>02</span> Ambil warna dari sisi</h2></div>
+<label class="field-label" for="edgeSide">Sisi sumber</label><select id="edgeSide" class="full-select"><option value="left">← Kiri</option><option value="right">Kanan →</option><option value="top">↑ Atas</option><option value="bottom">Bawah ↓</option></select><p id="edgeSideInfo" class="hint">Kolom piksel paling kiri dibentangkan ke seluruh lebar canvas menjadi garis horizontal.</p>
+<label class="field-label edge-label" for="edgePreset">Ukuran canvas (piksel)</label><select id="edgePreset" class="full-select"><option value="1280,720">1280 × 720 · Landscape HD</option><option value="1920,1080">1920 × 1080 · Landscape Full HD</option><option value="1080,1920">1080 × 1920 · Portrait 9:16</option><option value="1080,1440" selected>1080 × 1440 · Portrait 3:4</option><option value="1080,1080">1080 × 1080 · Square</option><option value="custom">Ukuran sendiri</option></select>
+<div id="edgeCustom" class="two-cols" hidden><label>Lebar (px)<input id="edgeWidth" type="number" min="240" max="3840" step="2" value="1080"></label><label>Tinggi (px)<input id="edgeHeight" type="number" min="240" max="3840" step="2" value="1440"></label></div><p class="hint">Warna mengikuti urutan piksel tepi sumber. Foto sumber tidak ikut dimasukkan ke hasil.</p></section>
+<section class="panel"><div class="section-heading"><h2><span>03</span> Simpan hasil</h2></div>
+<label class="field-label" for="edgeFormat">Format output</label><select id="edgeFormat" class="full-select"><option value="png">PNG · Gambar tanpa kompresi lossy</option><option value="jpeg">JPG · Gambar lebih kecil</option><option value="mp4">MP4 · Video 60 fps</option></select>
+<label class="field-label edge-label" for="edgeQuality">Kualitas</label><select id="edgeQuality" class="full-select"><option value="economy">Hemat</option><option value="standard">Standar</option><option value="high">Tinggi</option><option value="maximum" selected>Maksimal</option></select><p id="edgeQualityInfo" class="hint"></p>
+<div id="edgeDurationField" class="edge-label" hidden><label class="field-label" for="edgeDuration">Durasi video (detik)</label><input id="edgeDuration" class="full-select" type="number" min="1" max="60" step="1" value="10"><p class="hint">Video sumber mengulang jika lebih pendek dari durasi output. Tanpa audio.</p></div>
+<button id="edgeExport" class="primary edge-label" disabled>↓ Ekspor PNG</button><button id="edgeCancel" class="secondary edge-label" hidden>Batalkan ekspor</button></section>
+</aside>
+<section class="preview-section"><div class="preview-top"><div><span class="live-dot"></span> EDGE PREVIEW</div><span id="edgeDimensions">1080 × 1440 px</span></div>
+<div class="canvas-surround"><canvas id="edgeCanvas" width="540" height="720" aria-label="Preview garis warna dari tepi media"></canvas><div id="edgeEmpty" class="empty-state"><div class="dvd-mark">colors<span>FROM THE VERY EDGE</span></div><p>Warna kecil, kemungkinan besar.</p><small>Upload foto atau video untuk mulai.</small></div></div>
+<div class="note"><span>▥</span><div><strong>Setiap tepi punya paletnya sendiri.</strong><p>Sisi kiri/kanan menghasilkan garis horizontal. Sisi atas/bawah menghasilkan garis vertikal. Warna dari video bergerak mengikuti frame sumber.</p></div></div><div id="edgeStatus" role="status" aria-live="polite"></div></section>
+</div></main><footer>MADE FOR THE SATISFYING LITTLE THINGS <span>Edge Colors / 2026</span></footer>
+<script src="vendor/mediabunny.js"></script><script src="edge.js"></script>
+</body></html>

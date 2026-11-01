@@ -1,4 +1,6 @@
 import os
+import hmac
+import importlib.util
 import urllib.parse
 import hashlib
 import logging
@@ -20,6 +22,8 @@ from generators import (
     generate_permohonan_rutin,
     generate_nota_dinas,
     generate_laporan_perjalanan,
+    resolve_public_image_data_url,
+    is_supported_public_image_url,
 )
 from gen_utils import search_employees
 from spt_parser import scan_spt_file
@@ -238,6 +242,53 @@ def _gate_all_requests():
     return redirect(f'/login?next={nxt}')
 
 
+# The launcher and both apps share the existing signed Flask session.
+@app.before_request
+def _gate_extra_apps():
+    path = request.path
+    if path.startswith(('/apps/', '/aplikasi dvd/', '/tex app excel/')):
+        if not session.get('extra_apps_auth'):
+            if request.method != 'GET':
+                return jsonify({'error': 'Masukkan password melalui logo Tesocr.'}), 401
+            return redirect('/?pilih-aplikasi=1')
+        # Only expose public assets through the dedicated app routes.
+        if path.startswith(('/aplikasi dvd/', '/tex app excel/')):
+            return '', 404
+
+
+@app.post('/api/apps/unlock')
+def unlock_extra_apps():
+    payload = request.get_json(silent=True) or {}
+    if not hmac.compare_digest(str(payload.get('password', '')), '101010'):
+        return jsonify({'error': 'Password salah. Coba lagi.'}), 403
+    session.permanent = True
+    session['extra_apps_auth'] = True
+    return jsonify({'ok': True})
+
+
+@app.get('/apps/<app_name>/')
+@app.get('/apps/<app_name>/<path:filename>')
+def extra_app_asset(app_name, filename='index.html'):
+    folders = {'dvd': 'aplikasi dvd', 'excel': 'tex app excel'}
+    folder = folders.get(app_name)
+    allowed = {'index.html', 'style.css', 'app.js', 'edge.html', 'edge.js',
+               'vendor/mediabunny.js'} if app_name == 'dvd' else {'index.html', 'style.css', 'script.js'}
+    if folder is None or filename not in allowed:
+        return '', 404
+    return send_from_directory(os.path.join(app.root_path, folder), filename)
+
+
+_excel_spec = importlib.util.spec_from_file_location(
+    'tesocr_excel', os.path.join(app.root_path, 'tex app excel', 'app.py'))
+_excel_module = importlib.util.module_from_spec(_excel_spec)
+_excel_spec.loader.exec_module(_excel_module)
+
+
+@app.post('/apps/excel/convert')
+def extra_excel_convert():
+    return _excel_module.convert_file()
+
+
 @app.get('/')
 def root():
     return send_from_directory('.', 'index.html')
@@ -330,6 +381,24 @@ def api_scan_spt():
         logging.exception('Gagal memindai SPT')
         return jsonify({'error': 'Gagal memindai SPT. Periksa file dan coba lagi.'}), 500
     return jsonify(result)
+
+
+@app.post('/api/resolve-image-link')
+def api_resolve_image_link():
+    payload = request.get_json(force=True, silent=True) or {}
+    raw_url = str(payload.get('url') or '').strip()
+    if not raw_url:
+        return jsonify({'error': 'URL foto wajib diisi.'}), 400
+    if not is_supported_public_image_url(raw_url):
+        return jsonify({'error': 'Format link belum dikenali sebagai link file Google Drive publik.'}), 400
+    try:
+        data_url = resolve_public_image_data_url(raw_url)
+    except Exception:
+        logging.exception('Gagal resolve link foto')
+        return jsonify({'error': 'Terjadi kesalahan saat memproses link foto.'}), 500
+    if not data_url:
+        return jsonify({'error': 'Link terbaca, tapi file belum bisa diunduh sebagai gambar. Pastikan file gambar (bukan folder) dan izin "Anyone with the link".'}), 400
+    return jsonify({'ok': True, 'dataUrl': data_url})
 
 
 @app.post('/api/generate/<doc_type>')

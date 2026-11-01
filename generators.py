@@ -1,13 +1,27 @@
 from typing import Dict, Any, List, Tuple, Optional
 import io
 from datetime import datetime, date
+import re
+import html
+import ssl
+import urllib.parse
+import urllib.error
+import urllib.request
 
 from docx import Document
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+from docx.oxml import OxmlElement
 from docx.text.paragraph import Paragraph
 from docx.shared import Cm, Pt
 import base64
 from openpyxl import load_workbook
 from openpyxl.styles import Font
+from PIL import Image
+try:
+    import pillow_heif
+    pillow_heif.register_heif_opener()
+except ImportError:
+    pillow_heif = None
 
 from gen_utils import (
     terbilang_rupiah,
@@ -26,6 +40,9 @@ from gen_utils import (
     iter_block_items,
     MONTHS_ID,
 )
+
+
+MAX_EMPLOYEE_SLOTS = 8
 
 
 def _parse_date(s: str) -> date:
@@ -54,6 +71,18 @@ def _apply_year(d: date, year: int) -> date:
         if d.month == 2 and d.day == 29:
             return date(year, 2, 28)
         raise
+
+
+def _get_limited_employees(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
+    raw = payload.get('pegawai_list')
+    if not isinstance(raw, list):
+        return []
+    return raw[:MAX_EMPLOYEE_SLOTS]
+
+
+def _unused_employee_slots(count: int) -> range:
+    used = max(0, min(int(count or 0), MAX_EMPLOYEE_SLOTS))
+    return range(used + 1, MAX_EMPLOYEE_SLOTS + 1)
 
 
 def _apply_text_style(doc: Document, target: str, *, bold: Optional[bool] = None, size_pt: Optional[float] = None) -> None:
@@ -97,6 +126,272 @@ def _find_paragraphs_with_token(doc: Document, token: str) -> List[Paragraph]:
     return matches
 
 
+def _insert_paragraph_after(paragraph: Paragraph) -> Paragraph:
+    new_p = OxmlElement('w:p')
+    paragraph._p.addnext(new_p)
+    return Paragraph(new_p, paragraph._parent)
+
+
+_MAX_REMOTE_IMAGE_BYTES = 8 * 1024 * 1024
+
+
+def _is_valid_image_bytes(data: bytes) -> bool:
+    if not data:
+        return False
+    try:
+        with Image.open(io.BytesIO(data)) as img:
+            img.verify()
+        return True
+    except Exception:
+        return False
+
+
+def _decode_base64_image(data_url_or_b64: Any) -> Optional[bytes]:
+    raw = str(data_url_or_b64 or '').strip()
+    if not raw:
+        return None
+    try:
+        if ',' in raw:
+            raw = raw.split(',', 1)[1]
+        decoded = base64.b64decode(raw)
+    except Exception:
+        return None
+    return decoded if _is_valid_image_bytes(decoded) else None
+
+
+def _extract_drive_file_id(raw_url: Any) -> str:
+    raw = str(raw_url or '').strip()
+    if not raw:
+        return ''
+    try:
+        parsed = urllib.parse.urlparse(raw)
+    except Exception:
+        return ''
+    host = (parsed.hostname or '').lower()
+    if host.startswith('www.'):
+        host = host[4:]
+    if host != 'drive.google.com':
+        return ''
+    path = parsed.path or ''
+    m = re.search(r'/file/d/([a-zA-Z0-9_-]+)', path)
+    if m:
+        return m.group(1)
+    query = urllib.parse.parse_qs(parsed.query or '')
+    return (query.get('id') or [''])[0].strip()
+
+
+def _build_google_drive_candidate_urls(raw_url: Any) -> List[str]:
+    raw = str(raw_url or '').strip()
+    if not raw:
+        return []
+    try:
+        parsed = urllib.parse.urlparse(raw)
+    except Exception:
+        return []
+    if parsed.scheme not in ('http', 'https'):
+        return []
+
+    host = (parsed.hostname or '').lower()
+    if host.startswith('www.'):
+        host = host[4:]
+    if host.endswith('googleusercontent.com'):
+        return [raw]
+    if host != 'drive.google.com':
+        return []
+
+    file_id = _extract_drive_file_id(raw)
+    if not file_id:
+        return []
+    qid = urllib.parse.quote(file_id)
+    return [
+        f"https://drive.usercontent.google.com/download?id={qid}&export=download&confirm=t",
+        f"https://drive.google.com/uc?export=download&id={qid}",
+        f"https://drive.google.com/uc?export=view&id={qid}",
+    ]
+
+
+def _normalize_google_drive_public_url(raw_url: Any) -> str:
+    candidates = _build_google_drive_candidate_urls(raw_url)
+    return candidates[0] if candidates else ''
+
+
+def _extract_drive_download_links_from_html(html_text: str) -> List[str]:
+    links: List[str] = []
+    if not html_text:
+        return links
+    text = html.unescape(html_text)
+    patterns = [
+        r'https://drive\.usercontent\.google\.com[^\s"\'<>]+',
+        r'https://drive\.google\.com/uc\?[^\s"\'<>]+',
+        r'/uc\?[^\s"\'<>]+',
+    ]
+    for pattern in patterns:
+        for match in re.findall(pattern, text, flags=re.IGNORECASE):
+            url = match.strip()
+            if url.startswith('/'):
+                url = f"https://drive.google.com{url}"
+            links.append(url.replace('&amp;', '&'))
+    # deduplicate while preserving order
+    seen = set()
+    uniq: List[str] = []
+    for url in links:
+        if url in seen:
+            continue
+        seen.add(url)
+        uniq.append(url)
+    return uniq
+
+
+def _fetch_remote_image_bytes(url: str, opener, depth: int = 0) -> Optional[bytes]:
+    req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+    with opener.open(req, timeout=20) as response:
+        content_len = response.headers.get('Content-Length')
+        if content_len:
+            try:
+                if int(content_len) > _MAX_REMOTE_IMAGE_BYTES:
+                    return None
+            except ValueError:
+                pass
+        content_type = str(response.headers.get('Content-Type') or '').lower()
+        data = response.read(_MAX_REMOTE_IMAGE_BYTES + 1)
+    if not data or len(data) > _MAX_REMOTE_IMAGE_BYTES:
+        return None
+    if _is_valid_image_bytes(data):
+        return data
+    if depth >= 1 and 'html' not in content_type:
+        return None
+    try:
+        html_text = data.decode('utf-8', errors='ignore')
+    except Exception:
+        return None
+    for next_url in _extract_drive_download_links_from_html(html_text):
+        try:
+            img = _fetch_remote_image_bytes(next_url, opener, depth + 1)
+        except Exception:
+            img = None
+        if img:
+            return img
+    return None
+
+
+def _is_ssl_cert_error(exc: Exception) -> bool:
+    if isinstance(exc, ssl.SSLCertVerificationError):
+        return True
+    if isinstance(exc, urllib.error.URLError):
+        reason = exc.reason
+        if isinstance(reason, ssl.SSLCertVerificationError):
+            return True
+        return 'CERTIFICATE_VERIFY_FAILED' in str(reason)
+    return 'CERTIFICATE_VERIFY_FAILED' in str(exc)
+
+
+def _download_public_image_bytes(raw_url: Any) -> Optional[bytes]:
+    candidates = _build_google_drive_candidate_urls(raw_url)
+    if not candidates:
+        return None
+    opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor())
+    last_error: Optional[Exception] = None
+    for target_url in candidates:
+        try:
+            data = _fetch_remote_image_bytes(target_url, opener, depth=0)
+        except Exception as exc:
+            last_error = exc
+            data = None
+        if data:
+            return data
+    if last_error and _is_ssl_cert_error(last_error):
+        insecure_opener = urllib.request.build_opener(
+            urllib.request.HTTPCookieProcessor(),
+            urllib.request.HTTPSHandler(context=ssl._create_unverified_context()),
+        )
+        for target_url in candidates:
+            try:
+                data = _fetch_remote_image_bytes(target_url, insecure_opener, depth=0)
+            except Exception:
+                data = None
+            if data:
+                return data
+    return None
+
+
+def is_supported_public_image_url(raw_url: Any) -> bool:
+    return bool(_build_google_drive_candidate_urls(raw_url))
+
+
+def resolve_public_image_bytes(raw_url: Any) -> Optional[bytes]:
+    return _download_public_image_bytes(raw_url)
+
+
+def resolve_public_image_data_url(raw_url: Any) -> Optional[str]:
+    data = _prepare_image_bytes_for_docx(_download_public_image_bytes(raw_url))
+    if not data:
+        return None
+    mime = 'image/jpeg'
+    try:
+        with Image.open(io.BytesIO(data)) as img:
+            fmt = (img.format or '').upper()
+        mime = {
+            'PNG': 'image/png',
+            'WEBP': 'image/webp',
+            'GIF': 'image/gif',
+            'BMP': 'image/bmp',
+            'TIFF': 'image/tiff',
+            'HEIF': 'image/heif',
+            'HEIC': 'image/heic',
+            'JPEG': 'image/jpeg',
+            'JPG': 'image/jpeg',
+        }.get(fmt, 'image/jpeg')
+    except Exception:
+        pass
+    encoded = base64.b64encode(data).decode('ascii')
+    return f"data:{mime};base64,{encoded}"
+
+
+def _normalize_photo_payload_items(payload: Dict[str, Any]) -> List[Dict[str, str]]:
+    raw_items = payload.get('photo_items')
+    if isinstance(raw_items, list):
+        source = raw_items
+    else:
+        fotos = payload.get('fotos') if isinstance(payload.get('fotos'), dict) else {}
+        foto_links = payload.get('foto_links') if isinstance(payload.get('foto_links'), dict) else {}
+        source = [
+            {'dataUrl': fotos.get('fot1'), 'link': foto_links.get('fot1')},
+            {'dataUrl': fotos.get('fot2'), 'link': foto_links.get('fot2')},
+            {'dataUrl': fotos.get('fot3'), 'link': foto_links.get('fot3')},
+        ]
+
+    items: List[Dict[str, str]] = []
+    for item in source:
+        if isinstance(item, str):
+            link = str(item).strip()
+            data_url = ''
+        elif isinstance(item, dict):
+            link = str(item.get('link') or item.get('url') or '').strip()
+            data_url = str(item.get('dataUrl') or item.get('data_url') or item.get('foto') or '').strip()
+        else:
+            continue
+        if not link and not data_url:
+            continue
+        items.append({'link': link, 'data_url': data_url})
+    return items
+
+
+def _prepare_image_bytes_for_docx(data: Optional[bytes]) -> Optional[bytes]:
+    if not data or not _is_valid_image_bytes(data):
+        return None
+    try:
+        with Image.open(io.BytesIO(data)) as img:
+            fmt = (img.format or '').upper()
+            if fmt in {'PNG', 'JPEG', 'JPG', 'GIF', 'BMP', 'TIFF'}:
+                return data
+            converted = img.convert('RGB') if img.mode not in {'RGB', 'L'} else img.copy()
+            bio = io.BytesIO()
+            converted.save(bio, format='PNG')
+            return bio.getvalue()
+    except Exception:
+        return data
+
+
 def generate_rincian_biaya(payload: Dict[str, Any]) -> Tuple[bytes, str, str]:
     template_path = 'kode_files/kode_rincian_biaya.xlsx'
     wb = load_workbook(template_path)
@@ -112,7 +407,7 @@ def generate_rincian_biaya(payload: Dict[str, Any]) -> Tuple[bytes, str, str]:
     detail_tujuan = payload.get('detail_tujuan') or ''
     sumber_dana = (payload.get('sumber_dana') or 'rutin').lower()
     tahun_berkas = _parse_year(payload.get('tahun_berkas'), fallback=ttd or t_mulai)
-    employees: List[Dict[str, Any]] = payload.get('pegawai_list') or []
+    employees = _get_limited_employees(payload)
     extras: List[Dict[str, Any]] = payload.get('pengeluaran_tambahan') or []
 
     lumpsum = panggil_biaya_dinas(tujuan, detail_tujuan)
@@ -264,13 +559,13 @@ def generate_pengeluaran_riil(payload: Dict[str, Any]) -> Tuple[bytes, str, str]
     tujuan = payload.get('tujuan') or ''
     detail_tujuan = payload.get('detail_tujuan') or ''
     perihal = payload.get('perihal') or ' '
-    employees: List[Dict[str, Any]] = payload.get('pegawai_list') or []
+    employees = _get_limited_employees(payload)
     extras: List[Dict[str, Any]] = payload.get('pengeluaran_tambahan') or []
 
     # Remove extra rows beyond count
     n = len(employees)
     tokens_to_remove = []
-    for i in range(n+1, 7):
+    for i in _unused_employee_slots(n):
         tokens_to_remove += [f'PEG{i}', f'NIPPEG{i}', f'TOTPEG{i}']
     remove_table_rows_with_tokens(doc, tokens_to_remove)
 
@@ -342,12 +637,12 @@ def generate_spt(payload: Dict[str, Any]) -> Tuple[bytes, str, str]:
     dasar = payload.get('dasar') or ' '
     perihal = payload.get('perihal') or ' '
     tahun_berkas = _parse_year(payload.get('tahun_berkas'), fallback=t_mulai)
-    employees: List[Dict[str, Any]] = payload.get('pegawai_list') or []
+    employees = _get_limited_employees(payload)
 
     # Remove extra rows
     n = len(employees)
     tokens_to_remove = []
-    for i in range(n+1, 7):
+    for i in _unused_employee_slots(n):
         tokens_to_remove += [f'PEG{i}', f'NIPPEG{i}', f'JABPEG{i}', f'JABBEG{i}', f'PANGPEG{i}']
     remove_table_rows_with_tokens(doc, tokens_to_remove)
 
@@ -358,21 +653,55 @@ def generate_spt(payload: Dict[str, Any]) -> Tuple[bytes, str, str]:
         bulan_spt = str(bulan_spt_raw).strip()
 
     kad_choice = (payload.get('kepala_dinas') or 'efandri').strip().lower()
-    if kad_choice == 'efandri':
-        x1e = ''
-        namkad = 'Efandri, S.T., M.M.'
-        pangkad = 'Pembina /IV.a'
-        nikad = 'NIP 197307082006041015'
-    elif kad_choice == 'oben':
-        x1e = ''
-        namkad = 'H. Beni Akbari, S.T., M.M.'
-        pangkad = 'Pembina Utama Muda/ IV.c'
-        nikad = 'NIP 197901082003121006'
-    else:
-        x1e = 'Plt.'
-        namkad = 'Efandri, S.T., M.M.'
-        pangkad = 'Pembina /IV.a'
-        nikad = 'NIP 197307082006041015'
+    kad_map = {
+        'plt_efandri': {
+            'X1e': 'Plt.',
+            'Namkad': 'Efandri, S.T., M.M.',
+            'Pangkad': 'Pembina /IV.a',
+            'Nikad': 'NIP 197307082006041015',
+            'LWQ': 'KEPALA DINAS PEKERJAAN UMUM DAN PENATAAN RUANG KOTA PRABUMULIH',
+            'NXX': '600',
+        },
+        'efandri': {
+            'X1e': '',
+            'Namkad': 'Efandri, S.T., M.M.',
+            'Pangkad': 'Pembina /IV.a',
+            'Nikad': 'NIP 197307082006041015',
+            'LWQ': 'KEPALA DINAS PEKERJAAN UMUM DAN PENATAAN RUANG KOTA PRABUMULIH',
+            'NXX': '600',
+        },
+        'oben': {
+            'X1e': '',
+            'Namkad': 'H. Beni Akbari, S.T., M.M.',
+            'Pangkad': 'Pembina Utama Muda/ IV.c',
+            'Nikad': 'NIP 197901082003121006',
+            'LWQ': 'KEPALA DINAS PEKERJAAN UMUM DAN PENATAAN RUANG KOTA PRABUMULIH',
+            'NXX': '600',
+        },
+        'anggi_kabid': {
+            'X1e': '',
+            'Namkad': 'Verzi Anggi Akbar, S.T., M.Si.',
+            'Pangkad': 'Penata Tingkat I / III.d',
+            'Nikad': 'NIP 198509112009031001',
+            'LWQ': 'KEPALA BIDANG CIPTA KARYA DINAS PEKERJAAN UMUM DAN PENATAAN RUANG KOTA PRABUMULIH',
+            'NXX': '640',
+        },
+        'efandri_ivb': {
+            'X1e': '',
+            'Namkad': 'Efandri, S.T., M.M.',
+            'Pangkad': 'Pembina Tingkat I /IV.b',
+            'Nikad': 'NIP 197307082006041015',
+            'LWQ': 'KEPALA DINAS PEKERJAAN UMUM DAN PENATAAN RUANG KOTA PRABUMULIH',
+            'NXX': '600',
+        },
+    }
+    kad_data = kad_map.get(kad_choice, kad_map['efandri'])
+    x1e = kad_data['X1e']
+    namkad = kad_data['Namkad']
+    pangkad = kad_data['Pangkad']
+    nikad = kad_data['Nikad']
+    lwq = kad_data['LWQ']
+    nxx = kad_data['NXX']
 
     mapping: Dict[str, str] = {
         'DASAR1': dasar,
@@ -385,6 +714,8 @@ def generate_spt(payload: Dict[str, Any]) -> Tuple[bytes, str, str]:
         'Namkad': namkad,
         'Pangkad': pangkad,
         'Nikad': nikad,
+        'LWQ': lwq,
+        'NXX': nxx,
     }
 
     for idx, emp in enumerate(employees, start=1):
@@ -405,6 +736,7 @@ def generate_spt(payload: Dict[str, Any]) -> Tuple[bytes, str, str]:
     replace_placeholders_docx(doc, mapping, font_name='Bookman Old Style', font_size_pt=10.5)
     _apply_text_style(doc, namkad, bold=True)
     _apply_text_style(doc, x1e, bold=True)
+    _apply_text_style(doc, lwq, bold=True)
 
     bio = io.BytesIO()
     doc.save(bio)
@@ -425,7 +757,7 @@ def generate_sppd_hal_1(payload: Dict[str, Any]) -> Tuple[bytes, str, str]:
     total_hari = int(payload.get('total_hari') or 1)
     tujuan = payload.get('tujuan') or ''
     perihal = payload.get('perihal') or ' '
-    employees: List[Dict[str, Any]] = payload.get('pegawai_list') or []
+    employees = _get_limited_employees(payload)
     kpa_raw = payload.get('kpa') or 'Kepala Bidang Cipta Karya'
     kpa_sel = kpa_raw.lower()
     tahun_berkas = _parse_year(payload.get('tahun_berkas'), fallback=t_mulai)
@@ -442,11 +774,11 @@ def generate_sppd_hal_1(payload: Dict[str, Any]) -> Tuple[bytes, str, str]:
     if kpa_sel == 'kabid lama':
         kpa_display = 'Kepala Bidang Cipta Karya'
 
-    # Cleanup when pegawai < 6: remove only the lines (paragraphs) with tokens in cells,
+    # Cleanup when pegawai kurang dari slot template: remove only the lines (paragraphs) with tokens in cells,
     # NOT entire rows, so headers/other columns stay.
     n = len(employees)
     tokens_to_remove = []
-    for i in range(n+1, 7):
+    for i in _unused_employee_slots(n):
         tokens_to_remove += [f'PEG{i}', f'NIPPEG{i}', f'TANGLAHPEG{i}']
     try:
         from gen_utils import remove_cell_paragraphs_with_tokens
@@ -517,13 +849,13 @@ def generate_permohonan_rutin(payload: Dict[str, Any]) -> Tuple[bytes, str, str]
     total_hari = int(payload.get('total_hari') or 1)
     tujuan = payload.get('tujuan') or ''
     perihal = payload.get('perihal') or ' '
-    employees: List[Dict[str, Any]] = payload.get('pegawai_list') or []
+    employees = _get_limited_employees(payload)
     extras: List[Dict[str, Any]] = payload.get('pengeluaran_tambahan') or []
 
     # Remove extra rows if template has table rows for extra pegs
     n = len(employees)
     tokens_to_remove = []
-    for i in range(n+1, 7):
+    for i in _unused_employee_slots(n):
         tokens_to_remove += [f'PEG{i}', f'NIPPEG{i}', f'TOTPEG{i}']
     remove_table_rows_with_tokens(doc, tokens_to_remove)
 
@@ -563,7 +895,7 @@ def generate_nota_dinas(payload: Dict[str, Any]) -> Tuple[bytes, str, str]:
     set_document_font(doc, 'Times New Roman', 11)
 
     perihal = payload.get('perihal') or ' '
-    employees: List[Dict[str, Any]] = payload.get('pegawai_list') or []
+    employees = _get_limited_employees(payload)
     pakai_kabid_lama_raw = (payload.get('pakai_kabid_lama') or 'tidak').strip().lower()
     pakai_kabid_lama = pakai_kabid_lama_raw in {'ya', 'y', 'iya', 'true', '1'}
 
@@ -598,7 +930,7 @@ def generate_nota_dinas(payload: Dict[str, Any]) -> Tuple[bytes, str, str]:
 
     n = len(employees)
     tokens_to_remove = []
-    for i in range(n+1, 7):
+    for i in _unused_employee_slots(n):
         tokens_to_remove += [f'PEG{i}', f'NIPPEG{i}', f'JABPEG{i}', f'PANGPEG{i}']
     remove_table_rows_with_tokens(doc, tokens_to_remove)
 
@@ -659,11 +991,11 @@ def generate_laporan_perjalanan(payload: Dict[str, Any]) -> Tuple[bytes, str, st
     dasar = payload.get('dasar') or ' '
     perihal = payload.get('perihal') or ' '
     tempat = payload.get('tempat') or ' '
-    employees: List[Dict[str, Any]] = payload.get('pegawai_list') or []
+    employees = _get_limited_employees(payload)
 
     n = len(employees)
     tokens_to_remove = []
-    for i in range(n+1, 7):
+    for i in _unused_employee_slots(n):
         tokens_to_remove += [f'PEG{i}', f'NIPPEG{i}']
     remove_table_rows_with_tokens(doc, tokens_to_remove)
 
@@ -696,46 +1028,49 @@ def generate_laporan_perjalanan(payload: Dict[str, Any]) -> Tuple[bytes, str, st
 
     replace_placeholders_docx(doc, mapping, font_name='Bookman Old Style', font_size_pt=11)
 
-    # Handle photos: expect base64 strings in payload['fotos'] dict: fot1, fot2, fot3
-    fotos = payload.get('fotos') or {}
-    def _insert_photo(token: str, b64data: str):
-        if not b64data:
-            return
-        try:
-            if ',' in b64data:
-                b64data = b64data.split(',',1)[1]
-            img_bytes = base64.b64decode(b64data)
-        except Exception:
-            return
-        # Find paragraph containing the token
-        for table in doc.tables:
-            for row in table.rows:
-                for cell in row.cells:
-                    for p in cell.paragraphs:
-                        if token in p.text:
-                            # Clear token, then insert picture in same paragraph
-                            text = p.text.replace(token, '')
-                            for r in p.runs:
-                                r.text = ''
-                            run = p.add_run()
-                            run.add_picture(io.BytesIO(img_bytes), width=Cm(9.5))
-                            if text.strip():
-                                p.add_run(text)
-                            return
-        for p in doc.paragraphs:
-            if token in p.text:
-                text = p.text.replace(token, '')
-                for r in p.runs:
-                    r.text = ''
-                run = p.add_run()
-                run.add_picture(io.BytesIO(img_bytes), width=Cm(9.5))
-                if text.strip():
-                    p.add_run(text)
-                return
+    photo_items = _normalize_photo_payload_items(payload)
 
-    _insert_photo('FOT1', fotos.get('fot1'))
-    _insert_photo('FOT2', fotos.get('fot2'))
-    _insert_photo('FOT3', fotos.get('fot3'))
+    def _resolve_photo_bytes(item: Dict[str, str]) -> Optional[bytes]:
+        from_payload = _decode_base64_image(item.get('data_url'))
+        if from_payload:
+            return _prepare_image_bytes_for_docx(from_payload)
+        return _prepare_image_bytes_for_docx(resolve_public_image_bytes(item.get('link')))
+
+    def _render_photo_paragraph(paragraph: Paragraph, img_bytes: Optional[bytes], token: str) -> Paragraph:
+        text = (paragraph.text or '').replace(token, '').strip()
+        for run in paragraph.runs:
+            run.text = ''
+        if img_bytes:
+            paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+            paragraph.add_run().add_picture(io.BytesIO(img_bytes), width=Cm(9.5))
+        if text:
+            paragraph.add_run(text)
+        return paragraph
+
+    photo_paragraphs = {
+        token: (_find_paragraphs_with_token(doc, token) or [None])[0]
+        for token in ('FOT1', 'FOT2', 'FOT3')
+    }
+    anchor_paragraph = photo_paragraphs.get('FOT3') or photo_paragraphs.get('FOT2') or photo_paragraphs.get('FOT1')
+
+    for idx, token in enumerate(('FOT1', 'FOT2', 'FOT3')):
+        paragraph = photo_paragraphs.get(token)
+        if paragraph is None:
+            continue
+        item = photo_items[idx] if idx < len(photo_items) else None
+        rendered = _render_photo_paragraph(paragraph, _resolve_photo_bytes(item) if item else None, token)
+        anchor_paragraph = rendered or anchor_paragraph
+
+    if anchor_paragraph is None:
+        anchor_paragraph = doc.paragraphs[-1] if doc.paragraphs else doc.add_paragraph()
+
+    for item in photo_items[3:]:
+        img_bytes = _resolve_photo_bytes(item)
+        if not img_bytes:
+            continue
+        anchor_paragraph = _insert_paragraph_after(anchor_paragraph)
+        anchor_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+        anchor_paragraph.add_run().add_picture(io.BytesIO(img_bytes), width=Cm(9.5))
 
     bio = io.BytesIO()
     doc.save(bio)

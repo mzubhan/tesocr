@@ -1006,7 +1006,7 @@
 <body>
     <!-- Top Navigation Bar -->
     <nav class="navbar">
-        <a href="#" class="brand">
+        <a href="#pilih-aplikasi" class="brand" id="appLauncher" aria-label="Pilih aplikasi" aria-haspopup="dialog">
             <img src="img/logo.png" alt="Logo">
         </a>
         <div class="menu">
@@ -1018,6 +1018,78 @@
             <a class="logout-link" href="/logout">Keluar</a>
         </div>
     </nav>
+
+    <dialog id="appPicker" aria-labelledby="appPickerTitle">
+        <button type="button" id="closeAppPicker" aria-label="Tutup" style="float:right">✕</button>
+        <h2 id="appPickerTitle">Pilih aplikasi</h2>
+        <form id="appUnlockForm">
+            <p>Masukkan password untuk membuka aplikasi.</p>
+            <label for="appPassword">Password</label>
+            <input id="appPassword" type="password" autocomplete="current-password" required>
+            <p id="appUnlockError" role="alert"></p>
+            <button type="submit" id="appUnlockButton">Buka aplikasi</button>
+        </form>
+        <div id="appChoices" hidden>
+            <p>Pilih aplikasi yang ingin dibuka.</p>
+            <a href="/apps/dvd/">📀 Aplikasi DVD</a>
+            <a href="/apps/excel/">📊 Tex Excel</a>
+        </div>
+    </dialog>
+    <style>
+        #appPicker { width: min(420px, calc(100% - 40px)); box-sizing: border-box; padding: 28px; border: 1px solid var(--accent-color); border-radius: 16px; background: var(--card-bg, #fff); color: var(--primary-text); }
+        #appPicker::backdrop { background: rgba(0,0,0,.6); }
+        #appPicker h2 { margin-top: 0; }
+        #appPicker input { display: block; box-sizing: border-box; width: 100%; padding: 12px; margin-top: 8px; border: 1px solid #aaa; border-radius: 8px; }
+        #appPicker button, #appChoices a { cursor: pointer; padding: 10px 16px; border-radius: 8px; }
+        #appChoices a { display: block; margin-top: 12px; background: var(--button-bg); color: var(--button-text); text-decoration: none; border: 1px solid var(--accent-color); }
+        #appUnlockError { color: #d43b3b; min-height: 1.5em; }
+    </style>
+    <script>
+        (() => {
+            const picker = document.getElementById('appPicker');
+            const form = document.getElementById('appUnlockForm');
+            const password = document.getElementById('appPassword');
+            const error = document.getElementById('appUnlockError');
+            const button = document.getElementById('appUnlockButton');
+            function openPicker() {
+                form.hidden = false;
+                document.getElementById('appChoices').hidden = true;
+                password.value = '';
+                error.textContent = '';
+                picker.showModal();
+                password.focus();
+            }
+            document.getElementById('appLauncher').addEventListener('click', (event) => {
+                event.preventDefault();
+                openPicker();
+            });
+            document.getElementById('closeAppPicker').addEventListener('click', () => picker.close());
+            picker.addEventListener('click', (event) => { if (event.target === picker) { const r = picker.getBoundingClientRect(); if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) picker.close(); } });
+            form.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                button.disabled = true;
+                error.textContent = '';
+                try {
+                    const response = await fetch('/api/apps/unlock', {
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({password: password.value})
+                    });
+                    if (!response.ok) {
+                        error.textContent = response.status === 403 ? 'Password salah. Coba lagi.' : 'Gagal membuka aplikasi. Muat ulang lalu coba lagi.';
+                        password.select();
+                        return;
+                    }
+                    password.value = '';
+                    form.hidden = true;
+                    document.getElementById('appChoices').hidden = false;
+                    document.querySelector('#appChoices a').focus();
+                } catch (_) {
+                    error.textContent = 'Tidak dapat terhubung ke server. Coba lagi.';
+                } finally { button.disabled = false; }
+            });
+            if (new URLSearchParams(location.search).has('pilih-aplikasi')) openPicker();
+        })();
+    </script>
     <div class="navbar-spacer"></div>
 
     <div class="container">
@@ -1594,6 +1666,41 @@
             });
 
             // ---- Form builder (client-side) ----
+            const MAX_EMPLOYEE_SLOTS = 8;
+            const MIN_LPJ_PHOTO_SLOTS = 3;
+            const normalizePhotoLinkValue = (value) => String(value || '').trim().slice(0, 2000);
+            const normalizePhotoItems = (rawPhotoItems, options = {}) => {
+                const stripPhotoData = Boolean(options.stripPhotoData);
+                const legacyPhotos = options.legacyPhotos && typeof options.legacyPhotos === 'object' ? options.legacyPhotos : {};
+                const legacyLinks = options.legacyLinks && typeof options.legacyLinks === 'object' ? options.legacyLinks : {};
+                const source = Array.isArray(rawPhotoItems)
+                    ? rawPhotoItems
+                    : ['fot1', 'fot2', 'fot3'].map((key) => ({
+                        link: legacyLinks[key],
+                        dataUrl: legacyPhotos[key],
+                    }));
+                const normalized = source
+                    .map((item) => {
+                        if (typeof item === 'string') {
+                            return { link: normalizePhotoLinkValue(item), dataUrl: '' };
+                        }
+                        if (!item || typeof item !== 'object') {
+                            return { link: '', dataUrl: '' };
+                        }
+                        const link = normalizePhotoLinkValue(item.link || item.url || item.foto_link || item.fotoLink);
+                        const dataUrlRaw = item.dataUrl || item.data_url || item.foto || '';
+                        return {
+                            link,
+                            dataUrl: stripPhotoData ? '' : (typeof dataUrlRaw === 'string' ? dataUrlRaw : ''),
+                        };
+                    })
+                    .filter((item, idx) => item.link || item.dataUrl || idx < MIN_LPJ_PHOTO_SLOTS);
+                while (normalized.length < MIN_LPJ_PHOTO_SLOTS) {
+                    normalized.push({ link: '', dataUrl: '' });
+                }
+                return normalized;
+            };
+
             const createEmptyFormData = () => ({
                 nomor_spt: '', perihal: '', dasar: '',
                 tanggal_spt: '', tanggal_pergi: '', sampai_tanggal: '', total_hari: 1,
@@ -1604,7 +1711,7 @@
                 employees: [], // [{nama, nip}]
                 extras: [],    // [{nama, jenis, jumlah, hari}]
                 poin_list: [],
-                fotos: {},
+                photo_items: [],
             });
 
             const DOC_TYPE_LABELS = {
@@ -1647,8 +1754,9 @@
                 return Number.isFinite(t) ? t : 0;
             };
 
-            function sanitizeFormData(raw) {
+            function sanitizeFormData(raw, options = {}) {
                 const merged = { ...createEmptyFormData(), ...(raw && typeof raw === 'object' ? raw : {}) };
+                const stripPhotoData = Boolean(options.stripPhotoData);
                 const toInt = (value, fallback = 0) => {
                     const n = parseInt(value, 10);
                     return Number.isFinite(n) ? n : fallback;
@@ -1659,6 +1767,7 @@
                     ? merged.employees
                         .filter(emp => emp && typeof emp === 'object' && String(emp.nama || '').trim())
                         .map(emp => ({ nama: String(emp.nama || '').trim(), nip: String(emp.nip || '').trim() }))
+                        .slice(0, MAX_EMPLOYEE_SLOTS)
                     : [];
                 merged.extras = Array.isArray(merged.extras)
                     ? merged.extras
@@ -1673,12 +1782,13 @@
                 merged.poin_list = Array.isArray(merged.poin_list)
                     ? merged.poin_list.map(p => String(p || '').trim()).filter(Boolean).slice(0, 6)
                     : [];
-                const fotosRaw = merged.fotos && typeof merged.fotos === 'object' ? merged.fotos : {};
-                merged.fotos = {
-                    fot1: typeof fotosRaw.fot1 === 'string' ? fotosRaw.fot1 : '',
-                    fot2: typeof fotosRaw.fot2 === 'string' ? fotosRaw.fot2 : '',
-                    fot3: typeof fotosRaw.fot3 === 'string' ? fotosRaw.fot3 : '',
-                };
+                merged.photo_items = normalizePhotoItems(merged.photo_items, {
+                    stripPhotoData,
+                    legacyPhotos: merged.fotos,
+                    legacyLinks: merged.foto_links,
+                });
+                delete merged.fotos;
+                delete merged.foto_links;
                 return merged;
             }
 
@@ -1695,7 +1805,7 @@
                     ? rawTab.selectedTypes.filter(type => KNOWN_DOC_TYPES.has(type))
                     : [];
                 return {
-                    formData: sanitizeFormData(rawTab?.formData),
+                    formData: sanitizeFormData(rawTab?.formData, { stripPhotoData: true }),
                     selectedTypes,
                     scanInfo: sanitizeScanInfo(rawTab?.scanInfo),
                 };
@@ -1841,13 +1951,17 @@
                 let clearedCount = 0;
                 tabs.forEach((tab) => {
                     const formData = tab && typeof tab.formData === 'object' ? tab.formData : null;
-                    const fotos = formData && typeof formData.fotos === 'object' ? formData.fotos : null;
-                    if (!fotos) return;
-                    const hasPhoto = ['fot1', 'fot2', 'fot3'].some((key) => typeof fotos[key] === 'string' && fotos[key].trim());
+                    if (!formData) return;
+                    const photoItems = normalizePhotoItems(formData.photo_items, {
+                        stripPhotoData: false,
+                        legacyPhotos: formData.fotos,
+                        legacyLinks: formData.foto_links,
+                    });
+                    const hasPhoto = photoItems.some((item) => typeof item.dataUrl === 'string' && item.dataUrl.trim());
                     if (!hasPhoto) return;
                     tab.formData = {
                         ...formData,
-                        fotos: { fot1: '', fot2: '', fot3: '' },
+                        photo_items: photoItems.map((item) => ({ ...item, dataUrl: '' })),
                     };
                     clearedCount += 1;
                 });
@@ -1919,7 +2033,7 @@
 
             function captureWorkspaceSnapshot() {
                 const tabs = state.tabs.map(tab => ({
-                    formData: sanitizeFormData(tab.formData),
+                    formData: sanitizeFormData(tab.formData, { stripPhotoData: true }),
                     selectedTypes: Array.from(tab.selectedTypes || []).filter(type => KNOWN_DOC_TYPES.has(type)),
                     scanInfo: sanitizeScanInfo(tab.scanInfo),
                 }));
@@ -2228,7 +2342,7 @@
                 if (formEl._getEmployees) formData.employees = (formEl._getEmployees() || []).map(emp => ({ ...emp }));
                 if (formEl._getExtras) formData.extras = formEl._getExtras();
                 if (formEl._getPoints) formData.poin_list = formEl._getPoints();
-                if (formEl._fotos) formData.fotos = { ...formEl._fotos };
+                if (formEl._getPhotoItems) formData.photo_items = formEl._getPhotoItems();
             }
 
             async function fetchEmployees(q=''){
@@ -2370,6 +2484,7 @@
                       <option>DL lainnya</option>
                       <option>Bimtek</option>
                       <option>Titik nol</option>
+                      <option value="100000">100000</option>
                       <option>Lainnya</option>
                     </select>
                   </div>
@@ -2399,7 +2514,9 @@
                 const box = wrap.querySelector('.suggest-box');
                 const chips = wrap.querySelector('.emp-chips');
                 const chipKey = (emp) => `${emp.nama || ''}__${String(emp.nip || '')}`;
-                const selected = Array.isArray(initial) ? initial.map(e=>({nama:e.nama, nip:e.nip})) : [];
+                const selected = Array.isArray(initial)
+                    ? initial.map(e=>({nama:e.nama, nip:e.nip})).slice(0, MAX_EMPLOYEE_SLOTS)
+                    : [];
                 let lastTimer = null;
                 let results = [];
                 let activeIdx = -1;
@@ -2440,7 +2557,7 @@
                 function selectEmployee(emp){
                     if (!emp || !emp.nama) return;
                     if (selected.find(x=>chipKey(x) === chipKey(emp))) { input.value=''; hideBox(); return; }
-                    if (selected.length>=7) { hideBox(); return; }
+                    if (selected.length >= MAX_EMPLOYEE_SLOTS) { hideBox(); return; }
                     const nipStr = String(emp.nip || '').replace(/\.[0-9]+$/, '');
                     const record = {nama: emp.nama, nip: nipStr};
                     selected.push(record);
@@ -3044,7 +3161,7 @@
                 addField('pakai_kabid_lama', (()=>{ const d=document.createElement('div'); d.className='form-row'; d.innerHTML='<label>Nama Kabid</label><select name="pakai_kabid_lama"><option value="tidak">Anggi</option><option value="ya">DIandes</option></select>'; return d; })());
 
                 addField('tujuan', (()=>{ const d=document.createElement('div'); d.className='form-row'; d.innerHTML='<label>Tujuan pergi</label><select name="tujuan"><option value="">- Pilih -</option><option>Palembang</option><option>Prabumulih</option><option>Lainnya</option></select><div class="tujuan-custom" style="display:none; margin-top:6px;"><label>Tujuan lainnya</label><input name="tujuan_lainnya" placeholder="Contoh: Jakarta"></div>'; return d; })());
-                addField('detail_tujuan', (()=>{ const d=document.createElement('div'); d.className='form-row'; d.innerHTML='<label>Detail tujuan</label><select name="detail_tujuan"><option value="">- Pilih -</option><option>DL lainnya</option><option>Bimtek</option><option>Titik nol</option><option>Lainnya</option></select>'; return d; })());
+                addField('detail_tujuan', (()=>{ const d=document.createElement('div'); d.className='form-row'; d.innerHTML='<label>Detail tujuan</label><select name="detail_tujuan"><option value="">- Pilih -</option><option>DL lainnya</option><option>Bimtek</option><option>Titik nol</option><option value="100000">100000</option><option>Lainnya</option></select>'; return d; })());
                 addField('sumber_dana', (()=>{ const d=document.createElement('div'); d.className='form-row'; d.innerHTML='<label>Sumber dana</label><select name="sumber_dana"><option value="rutin">Rutin</option><option value="bidang">Bidang</option></select>'; return d; })());
 
                 addField('bulan_spt', (()=>{ const d=document.createElement('div'); d.className='form-row'; const months=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']; d.innerHTML='<label>Bulan SPT / SPPD</label><select name="bulan_spt"><option value="">Kosongkan</option>'+months.map(m=>`<option>${m}</option>`).join('')+'</select>'; return d; })());
@@ -3052,7 +3169,7 @@
                 addField('tahun_berkas', (()=>{ const d=document.createElement('div'); d.className='form-row'; d.innerHTML='<label>Tahun Berkas</label><select name="tahun_berkas"><option>2026</option><option>2025</option></select>'; return d; })());
                 addField('kpa', (()=>{ const d=document.createElement('div'); d.className='form-row'; d.innerHTML='<label>KPA</label><select name="kpa"><option>Kepala Bidang Cipta Karya</option><option>Kepala Dinas</option><option>Sekretaris Dinas</option><option>Kabid Lama</option></select>'; return d; })());
                 addField('tempat', (()=>{ const d=document.createElement('div'); d.className='form-row'; d.innerHTML='<label>Tempat</label><input name="tempat" placeholder="Contoh: Dinas Kesehatan Sumatera Selatan di Kota Palembang">'; return d; })());
-                addField('kepala_dinas', (()=>{ const d=document.createElement('div'); d.className='form-row'; d.innerHTML='<label>Kepala Dinas (SPT)</label><select name="kepala_dinas"><option value="efandri">Kak Efandrio sudah dilantik 🎉</option><option value="plt_efandri">Kak Efandrio pas masih PLT :(</option><option value="oben">Kak Oben</option></select>'; return d; })());
+                addField('kepala_dinas', (()=>{ const d=document.createElement('div'); d.className='form-row'; d.innerHTML='<label>Kepala Dinas (SPT)</label><select name="kepala_dinas"><option value="plt_efandri">Kak Efandrio pas masih PLT :(</option><option value="efandri">Kak Efandrio sudah dilantik 🎉</option><option value="oben">Kak Oben</option><option value="anggi_kabid">Kak Anggi / Kabid</option><option value="efandri_ivb">Kak Efan setelah naik golongan (alangke banyaknyo :/) mulai tanggal xx Juni</option></select>'; return d; })());
 
                 wrap.appendChild(grid);
                 wireDateInputs(wrap);
@@ -3122,21 +3239,212 @@
                     wrap._getPoints = ()=> quills.map(q=> q.getText().trim()).filter(Boolean).slice(0,6);
 
                     const fotoWrap = document.createElement('div'); fotoWrap.className='form-row';
-                    fotoWrap.innerHTML = '<label>Foto (JPG/PNG)</label>';
-                    const makeFile = (labelName)=>{
-                        const line=document.createElement('div'); line.style.display='flex'; line.style.alignItems='center'; line.style.gap='8px';
-                        const lbl=document.createElement('span'); lbl.textContent=labelName;
-                        const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*';
-                        const prev=document.createElement('img'); prev.style.maxWidth='160px'; prev.style.maxHeight='120px'; prev.style.display='none'; prev.style.border='1px solid #e5e7eb'; prev.style.borderRadius='4px';
-                        inp.onchange=(e)=>{
-                            const f=e.target.files[0]; if(!f) return; if(!f.type.startsWith('image/')){ alert('Untuk saat ini hanya gambar (JPG/PNG).'); return; }
-                            const r=new FileReader(); r.onload=()=>{ prev.src=r.result; prev.style.display='inline-block'; wrap._fotos[labelName.toLowerCase()] = r.result; }; r.readAsDataURL(f);
-                        };
-                        line.appendChild(lbl); line.appendChild(inp); line.appendChild(prev); return line;
+                    fotoWrap.innerHTML = '<label>Foto (Upload atau Link Google Drive Publik)</label>';
+                    const fotoHint = document.createElement('div');
+                    fotoHint.style.fontSize = '12px';
+                    fotoHint.style.opacity = '0.85';
+                    fotoHint.style.marginBottom = '8px';
+                    fotoHint.textContent = 'Minimal 3 slot foto. Bisa tambah slot baru. Draft hanya menyimpan link; file lokal hanya hidup di tab aktif.';
+                    fotoWrap.appendChild(fotoHint);
+
+                    const photoList = document.createElement('div');
+                    photoList.style.display = 'flex';
+                    photoList.style.flexDirection = 'column';
+                    photoList.style.gap = '10px';
+                    fotoWrap.appendChild(photoList);
+
+                    wrap._photoItems = normalizePhotoItems(formData.photo_items, { stripPhotoData: false })
+                        .map((item) => ({ ...item }));
+
+                    const renderPhotoList = () => {
+                        while (wrap._photoItems.length < MIN_LPJ_PHOTO_SLOTS) {
+                            wrap._photoItems.push({ link: '', dataUrl: '' });
+                        }
+                        photoList.innerHTML = '';
+                        wrap._photoItems.forEach((item, idx) => {
+                            const line=document.createElement('div');
+                            line.style.display='flex';
+                            line.style.flexDirection='column';
+                            line.style.gap='6px';
+                            line.style.marginBottom='8px';
+
+                            const top=document.createElement('div');
+                            top.style.display='flex';
+                            top.style.alignItems='center';
+                            top.style.gap='8px';
+
+                            const lbl=document.createElement('span');
+                            lbl.textContent=`FOT${idx + 1}`;
+                            lbl.style.minWidth='52px';
+
+                            const inp=document.createElement('input');
+                            inp.type='file';
+                            inp.accept='image/*';
+
+                            const removeBtn=document.createElement('button');
+                            removeBtn.type='button';
+                            removeBtn.className='btn btn-danger draft-btn';
+                            removeBtn.textContent='Hapus Slot';
+                            removeBtn.style.marginLeft='auto';
+                            removeBtn.disabled = wrap._photoItems.length <= MIN_LPJ_PHOTO_SLOTS;
+                            removeBtn.onclick = () => {
+                                if (wrap._photoItems.length <= MIN_LPJ_PHOTO_SLOTS) return;
+                                wrap._photoItems.splice(idx, 1);
+                                renderPhotoList();
+                            };
+
+                            top.appendChild(lbl);
+                            top.appendChild(inp);
+                            top.appendChild(removeBtn);
+
+                            const linkInput=document.createElement('input');
+                            linkInput.type='url';
+                            linkInput.placeholder='https://drive.google.com/file/d/... (publik)';
+                            linkInput.value = item.link || '';
+                            linkInput.style.width='100%';
+
+                            const linkStatus = document.createElement('div');
+                            linkStatus.style.fontSize = '12px';
+                            linkStatus.style.display = 'none';
+                            let resolveTimer = null;
+                            let resolveSeq = 0;
+
+                            const prev=document.createElement('img');
+                            prev.style.maxWidth='220px';
+                            prev.style.maxHeight='140px';
+                            prev.style.display='none';
+                            prev.style.border='1px solid #e5e7eb';
+                            prev.style.borderRadius='4px';
+                            prev.style.objectFit='cover';
+
+                            const refreshPreview = () => {
+                                const previewSrc = item.dataUrl || item.link;
+                                if (previewSrc) {
+                                    prev.src = previewSrc;
+                                    prev.style.display = 'inline-block';
+                                    return;
+                                }
+                                prev.removeAttribute('src');
+                                prev.style.display = 'none';
+                            };
+
+                            const setLinkStatus = (text, level = 'muted') => {
+                                linkStatus.textContent = text || '';
+                                if (!text) {
+                                    linkStatus.style.display = 'none';
+                                    return;
+                                }
+                                linkStatus.style.display = 'block';
+                                if (level === 'ok') linkStatus.style.color = '#065f46';
+                                else if (level === 'error') linkStatus.style.color = '#b91c1c';
+                                else linkStatus.style.color = '#6b7280';
+                            };
+
+                            const resolvePhotoLink = async () => {
+                                const cleaned = normalizePhotoLinkValue(linkInput.value);
+                                linkInput.value = cleaned;
+                                item.link = cleaned;
+                                item.dataUrl = '';
+                                refreshPreview();
+                                if (!cleaned) {
+                                    setLinkStatus('');
+                                    return;
+                                }
+                                const seq = ++resolveSeq;
+                                setLinkStatus('Mengecek link foto...', 'muted');
+                                try {
+                                    const res = await fetch('/api/resolve-image-link', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        credentials: 'same-origin',
+                                        body: JSON.stringify({ url: cleaned }),
+                                    });
+                                    const payload = await res.json().catch(() => ({}));
+                                    if (seq !== resolveSeq) return;
+                                    if (!res.ok || !payload.dataUrl) {
+                                        throw new Error(payload.error || 'Link foto belum bisa dipakai.');
+                                    }
+                                    item.dataUrl = payload.dataUrl;
+                                    refreshPreview();
+                                    setLinkStatus('Link valid. Foto berhasil dimuat.', 'ok');
+                                } catch (err) {
+                                    if (seq !== resolveSeq) return;
+                                    refreshPreview();
+                                    setLinkStatus(err && err.message ? err.message : 'Gagal memuat foto dari link.', 'error');
+                                }
+                            };
+
+                            linkInput.addEventListener('input', ()=> {
+                                item.link = normalizePhotoLinkValue(linkInput.value);
+                                item.dataUrl = '';
+                                refreshPreview();
+                                if (resolveTimer) clearTimeout(resolveTimer);
+                                resolveTimer = setTimeout(() => {
+                                    resolvePhotoLink();
+                                }, 450);
+                            });
+                            linkInput.addEventListener('blur', () => {
+                                if (resolveTimer) clearTimeout(resolveTimer);
+                                resolvePhotoLink();
+                            });
+
+                            prev.onerror = () => {
+                                if (!item.dataUrl) {
+                                    prev.style.display = 'none';
+                                }
+                            };
+
+                            inp.onchange=(e)=>{
+                                const f=e.target.files[0];
+                                if(!f) {
+                                    item.dataUrl = '';
+                                    refreshPreview();
+                                    return;
+                                }
+                                if(!f.type.startsWith('image/')){
+                                    alert('Untuk saat ini hanya gambar.');
+                                    return;
+                                }
+                                item.link = '';
+                                linkInput.value = '';
+                                const r=new FileReader();
+                                r.onload=()=>{
+                                    item.dataUrl = r.result;
+                                    refreshPreview();
+                                    setLinkStatus('Foto lokal dipakai untuk tab ini.', 'ok');
+                                };
+                                r.readAsDataURL(f);
+                            };
+
+                            line.appendChild(top);
+                            line.appendChild(linkInput);
+                            line.appendChild(linkStatus);
+                            line.appendChild(prev);
+                            refreshPreview();
+                            if (!item.dataUrl && item.link) {
+                                resolvePhotoLink();
+                            }
+                            photoList.appendChild(line);
+                        });
                     };
-                    wrap._fotos = {fot1: (formData.fotos||{}).fot1 || '', fot2: (formData.fotos||{}).fot2 || '', fot3: (formData.fotos||{}).fot3 || ''};
-                    const l1=makeFile('FOT1'); const l2=makeFile('FOT2'); const l3=makeFile('FOT3');
-                    fotoWrap.appendChild(l1); fotoWrap.appendChild(l2); fotoWrap.appendChild(l3);
+
+                    const addPhotoBtn = document.createElement('button');
+                    addPhotoBtn.type = 'button';
+                    addPhotoBtn.className = 'btn';
+                    addPhotoBtn.textContent = '+ Tambah Foto';
+                    addPhotoBtn.style.alignSelf = 'flex-start';
+                    addPhotoBtn.onclick = () => {
+                        wrap._photoItems.push({ link: '', dataUrl: '' });
+                        renderPhotoList();
+                    };
+
+                    wrap._getPhotoItems = () => normalizePhotoItems(wrap._photoItems, { stripPhotoData: false });
+                    wrap._getPhotoItemsForPayload = () => normalizePhotoItems(wrap._photoItems, { stripPhotoData: false })
+                        .filter((item) => item.link || item.dataUrl)
+                        .map((item) => item.link ? { link: item.link } : { dataUrl: item.dataUrl });
+
+                    renderPhotoList();
+                    fotoWrap.appendChild(addPhotoBtn);
                     wrap.appendChild(fotoWrap);
                 }
 
@@ -3176,7 +3484,7 @@
                     };
                         if (endpoint==='laporan'){
                             if (wrap._getPoints) payload.poin_list = wrap._getPoints();
-                            if (wrap._fotos) payload.fotos = { fot1: wrap._fotos.fot1, fot2: wrap._fotos.fot2, fot3: wrap._fotos.fot3 };
+                            if (wrap._getPhotoItemsForPayload) payload.photo_items = wrap._getPhotoItemsForPayload();
                         }
                         return payload;
                     };

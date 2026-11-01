@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Formula Remover - Convert Formulas to Values</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 Excel Formula Remover</h1>
+            <p class="subtitle">Convert Excel files with formulas into static values</p>
+        </header>
+
+        <div class="card">
+            <div class="upload-section">
+                <div class="upload-area" id="uploadArea">
+                    <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    <p class="upload-text">Click or drag & drop Excel file here</p>
+                    <p class="upload-subtext">Supports .xlsx and .xls formats</p>
+                    <input type="file" id="fileInput" accept=".xlsx,.xls" hidden>
+                </div>
+
+                <div class="file-info" id="fileInfo" style="display: none;">
+                    <div class="file-details">
+                        <span class="file-icon">📄</span>
+                        <div class="file-name-size">
+                            <span id="fileName"></span>
+                            <span id="fileSize" class="file-size"></span>
+                        </div>
+                    </div>
+                    <button class="btn-remove" id="removeFile">✕</button>
+                </div>
+            </div>
+
+            <div class="options-section">
+                <h3>Select Conversion Mode</h3>
+                <label class="radio-label">
+                    <input type="radio" name="conversionMode" value="external" checked>
+                    <span>Remove External Links & Other Sheets (Default)</span>
+                </label>
+                <label class="radio-label">
+                    <input type="radio" name="conversionMode" value="all">
+                    <span>Remove ALL Formulas (Flatten Total)</span>
+                </label>
+            </div>
+
+            <button class="btn-convert" id="convertBtn" type="button" disabled>
+                <span class="btn-text">Convert to Excel Without Formulas</span>
+            </button>
+
+            <button class="btn-save" id="saveBtn" type="button" disabled>
+                <span class="btn-text">Save Current Form Data</span>
+            </button>
+
+            <div class="saved-section">
+                <div class="saved-header">
+                    <h3>💾 Saved Data</h3>
+                    <button class="btn-clear-saved" id="clearSavedBtn" type="button">Clear All</button>
+                </div>
+                <p class="saved-empty" id="savedEmpty">No saved data yet.</p>
+                <ul class="saved-list" id="savedList"></ul>
+            </div>
+
+            <div class="progress-section" id="progressSection" style="display: none;">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <p class="progress-text" id="progressText">Processing file...</p>
+            </div>
+
+            <div class="info-section">
+                <h3>ℹ️ How It Works</h3>
+                <ol>
+                    <li>Upload an Excel file containing formulas</li>
+                    <li>The application reads all calculated values</li>
+                    <li>A new file is created replacing all formulas with static values</li>
+                    <li>Download the converted file free of #REF errors</li>
+                </ol>
+
+                <div class="warning-box">
+                    <strong>⚠️ Important Note:</strong>
+                    <p>The converted file contains only values, not formulas. If source data changes, values in the result file will not update automatically.</p>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Created to assist with administrative tasks</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
