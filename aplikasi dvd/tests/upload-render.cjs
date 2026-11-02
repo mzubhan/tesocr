@@ -33,7 +33,7 @@ function setup() {
   click() {state.downloads++;}
   getContext(type,options) {
    state.contexts.push(options);let clipped=false;
-   return {save() {},restore() {clipped=false;},beginPath() {},rect() {},clip() {clipped=true;},clearRect() {},fillRect() {},
+   return {save() {},restore() {clipped=false;},beginPath() {},rect() {},roundRect() {state.rounded=(state.rounded||0)+1;},clip() {clipped=true;},clearRect() {},fillRect() {},
     drawImage: (...args) => {if(typeof args[0]?.close!=='function')assert.equal(clipped,true,'media draw must be clipped');state.rawDraws.push(args);state.draws.push(args.length===9?[args[0],...args.slice(5)]:args);},
     putImageData() {},getImageData: (x,y,width,height) => {state.snapshots.push({width,height});return {data:new Uint8ClampedArray([1,2,3,255])};}
    };
@@ -86,7 +86,7 @@ test('video upload renders all 300 frames and restores preview time', async()=>{
 test('landscape photo keeps its original ratio on a 3:4 canvas in preview and export', async()=>{
  const app=setup();app.sandbox.files=[{name:'landscape.png',type:'image/png'}];
  await app.run('addFiles(files)');
- app.run("photos[0].img.naturalWidth=1600;photos[0].img.naturalHeight=900;$('preset').value='1080,1440';updateCanvas();");
+ app.run("photos[0].raster.width=1600;photos[0].raster.height=900;$('preset').value='1080,1440';updateCanvas();");
  assert.equal(app.get('canvas').width,1080);assert.equal(app.get('canvas').height,1440);
  assert.equal(app.get('canvas').style['--canvas-ratio'],.75);
  const preview=app.state.draws.at(-1);
@@ -100,7 +100,7 @@ test('landscape photo keeps its original ratio on a 3:4 canvas in preview and ex
 test('switching landscape and portrait media preserves each source ratio', async()=>{
  const app=setup();app.sandbox.files=[{name:'landscape.png',type:'image/png'},{name:'portrait.mp4',type:'video/mp4'}];
  await app.run('addFiles(files)');
- app.run("photos[0].img.naturalWidth=1600;photos[0].img.naturalHeight=900;photos[1].img.videoWidth=900;photos[1].img.videoHeight=1600;$('preset').value='1080,1440';updateCanvas();");
+ app.run("photos[0].raster.width=1600;photos[0].raster.height=900;photos[1].img.videoWidth=900;photos[1].img.videoHeight=1600;$('preset').value='1080,1440';updateCanvas();");
  assert.equal(app.run('size().w/size().h'),16/9);
  app.run('x=canvas.width-size().w-1;dx=1;dy=0;advance(1/60);draw();');
  assert.equal(app.run('current'),1);assert.equal(app.run('size().w/size().h'),9/16);
@@ -111,7 +111,7 @@ test('switching landscape and portrait media preserves each source ratio', async
 test('switching to a taller media near a corner does not immediately skip it', async()=>{
  const app=setup();app.sandbox.files=[{name:'wide.png',type:'image/png'},{name:'tall.png',type:'image/png'},{name:'next.png',type:'image/png'}];
  await app.run('addFiles(files)');
- app.run("$('preset').value='1080,1440';updateCanvas();photos[0].img.naturalWidth=1600;photos[0].img.naturalHeight=900;photos[1].img.naturalWidth=900;photos[1].img.naturalHeight=1600;current=0;x=canvas.width-size().w-1;y=1300;dx=1;dy=.2;advance(1/60);");
+ app.run("$('preset').value='1080,1440';updateCanvas();photos[0].raster.width=1600;photos[0].raster.height=900;photos[1].img.naturalWidth=900;photos[1].img.naturalHeight=1600;current=0;x=canvas.width-size().w-1;y=1300;dx=1;dy=.2;advance(1/60);");
  assert.equal(app.run('current'),1);
  assert.equal(app.run('bounces'),1);
  app.run('advance(1/60)');
@@ -134,7 +134,7 @@ test('export uses isolated RGBA frames, software raster context, and closes all 
  await app.run("$('export').onclick()");
  assert.equal(app.state.snapshots.length,300);assert.equal(app.state.closed,300);
  assert.ok(app.state.snapshots.every(frame=>frame.width===1080&&frame.height===1440));
- assert.ok(app.state.contexts.every(options=>options.willReadFrequently===true));
+ assert.ok(app.state.contexts.every(options=>!options||options.willReadFrequently===true));
  assert.equal(app.state.encoderConfigs[0].hardwareAcceleration,'prefer-software');
 });
 
@@ -180,7 +180,7 @@ test('photo drawing uses oriented bitmap dimensions rather than conflicting imag
  assert.equal(closed,true);assert.equal(app.run('size().w/size().h'),16/9);
  const draw=app.state.rawDraws.at(-1);
  assert.equal(draw[0],app.run('photos[0].raster'));
- assert.deepEqual(draw.slice(1,5),[0,0,1600,900]);
+ assert.deepEqual(draw.slice(1,5),[0,0,1280,720]);
  assert.equal(draw[7]/draw[8],16/9);
  await app.run("$('export').onclick()");
  assert.equal(app.state.finalized,true);
@@ -220,7 +220,31 @@ test('video background advances and restores its preview position after export',
 
 test('numeric media width supports values above 640 with original aspect ratio',async()=>{
  const app=setup();app.sandbox.files=[{name:'large.png',type:'image/png'}];await app.run('addFiles(files)');
- app.run("photos[0].img.naturalWidth=3000;photos[0].img.naturalHeight=1500;$('preset').value='1920,1080';updateCanvas();$('photoWidthNumber').value='1200';$('photoWidthNumber').onchange();");
+ app.run("photos[0].raster.width=1600;photos[0].raster.height=800;$('preset').value='1920,1080';updateCanvas();$('photoWidthNumber').value='1200';$('photoWidthNumber').onchange();");
  assert.equal(app.run('size().w'),1200);assert.equal(app.run('size().h'),600);
  assert.equal(app.get('photoWidthNumber').value,1200);
+});
+
+
+test('large photos retain bounded rasters and release original image sources',async()=>{
+ const app=setup();let closed=0;
+ app.sandbox.createImageBitmap=async()=>({width:6000,height:4000,close(){closed++;}});
+ app.sandbox.files=Array.from({length:15},(_,i)=>({name:`photo${i}.jpg`,type:'image/jpeg'}));
+ await app.run('addFiles(files)');
+ assert.equal(app.run('photos.length'),15);assert.equal(closed,15);
+ assert.equal(app.run('photos[0].raster.width'),1280);
+ assert.ok(app.run('retainedBytes()')<80*1024*1024);
+ assert.ok(app.get('photoList').children.every(item=>item.children[0].tag==='canvas'));
+});
+test('memory budget rejects another oversized media without losing collection',async()=>{
+ const app=setup();app.sandbox.files=[{name:'first.jpg',type:'image/jpeg'}];await app.run('addFiles(files)');
+ app.run('photos[0].memoryBytes=MEDIA_BUDGET');
+ app.sandbox.files=[{name:'next.jpg',type:'image/jpeg'}];await app.run('addFiles(files)');
+ assert.equal(app.run('photos.length'),1);assert.match(app.get('status').textContent,/Memori koleksi penuh/);
+});
+test('rounded clipping applies in both preview and exported frames',async()=>{
+ const app=setup();app.sandbox.files=[{name:'photo.jpg',type:'image/jpeg'}];await app.run('addFiles(files)');
+ app.get('cornerRadius').value='60';app.run("$('cornerRadius').oninput()");
+ assert.ok(app.state.rounded>0);const before=app.state.rounded;
+ await app.run("$('export').onclick()");assert.ok(app.state.rounded>=before+300);
 });

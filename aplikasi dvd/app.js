@@ -19,26 +19,33 @@ function seekVideo(media){
   video.currentTime=target;
  });
 }
-function disposeMedia(media){media.disposed=true;if(media.raster){media.raster.width=0;media.raster.height=0;media.raster=null;}if(media.kind==='video'){media.img.pause();media.img.removeAttribute('src');media.img.load();}URL.revokeObjectURL(media.url);}
+function disposeMedia(media){media.disposed=true;if(media.raster){media.raster.width=0;media.raster.height=0;media.raster=null;}if(media.patch){media.patch.width=0;media.patch.height=0;media.frames=null;media.gif=null;media.restore=null;}if(media.kind==='video'){media.img.pause();media.img.removeAttribute('src');media.img.load();}URL.revokeObjectURL(media.url);}
 
+// Bound retained RGBA memory instead of keeping multiple full-resolution copies.
+const PHOTO_EDGE=1280, MEDIA_BUDGET=80*1024*1024;
+function retainedBytes(){return [...photos,customBackground].filter(Boolean).reduce((n,m)=>n+(m.memoryBytes||0),0);}
+function checkBudget(bytes){if(retainedBytes()+bytes>MEDIA_BUDGET)throw Error('Memori koleksi penuh. Hapus beberapa media atau gunakan file lebih kecil.');}
 async function normalizePhoto(file,media){
- if(typeof createImageBitmap!=='function')return;
  let bitmap;
- try{bitmap=await createImageBitmap(file,{imageOrientation:'from-image'});}
- catch{return;} // Retain the decoded image on browsers without this format's bitmap decoder.
  try{
+  if(typeof createImageBitmap==='function'){
+   try{bitmap=await createImageBitmap(file,{imageOrientation:'from-image'});}catch{}
+  }
   if(media.disposed)return;
-  if(!bitmap.width||!bitmap.height)throw Error('Ukuran bitmap foto tidak valid');
-  // The pixel source and its dimensions must come from the same oriented decode.
-  // Materialize once, instead of sampling an HTML image texture on every frame.
-  const raster=document.createElement('canvas');raster.width=bitmap.width;raster.height=bitmap.height;
+  const source=bitmap||media.img;
+  const width=bitmap?bitmap.width:media.img.naturalWidth,height=bitmap?bitmap.height:media.img.naturalHeight;
+  const scale=Math.min(1,PHOTO_EDGE/Math.max(width,height));
+  const rw=Math.max(1,Math.round(width*scale)),rh=Math.max(1,Math.round(height*scale));
+  checkBudget(rw*rh*4);
+  const raster=document.createElement('canvas');raster.width=rw;raster.height=rh;
   const rasterCtx=raster.getContext('2d',{alpha:true,willReadFrequently:true});
-  rasterCtx.drawImage(bitmap,0,0,bitmap.width,bitmap.height,0,0,bitmap.width,bitmap.height);
-  const pixels=rasterCtx.getImageData(0,0,raster.width,raster.height);
-  rasterCtx.putImageData(pixels,0,0);
-  media.raster=raster;
- }finally{bitmap.close();}
+  rasterCtx.save();rasterCtx.beginPath();rasterCtx.rect(0,0,rw,rh);rasterCtx.clip();
+  rasterCtx.drawImage(source,0,0,width,height,0,0,rw,rh);rasterCtx.restore();
+  media.raster=raster;media.memoryBytes=rw*rh*4;
+  media.img.removeAttribute('src');URL.revokeObjectURL(media.url);
+ }finally{if(bitmap)bitmap.close();}
 }
+function mediaSource(media){if(media.kind==='gif')renderGif(media);return media.raster||media.img;}
 
 function size(){
   if (!photos.length) return {w:180,h:120};
@@ -57,7 +64,7 @@ function drawFrame(targetCtx,width,height){
    const scale=$('backgroundFit').value==='contain'?Math.min(width/sw,height/sh):Math.max(width/sw,height/sh);
    const dw=sw*scale,dh=sh*scale;
    targetCtx.save();
-   try{targetCtx.beginPath();targetCtx.rect(0,0,width,height);targetCtx.clip();targetCtx.drawImage(customBackground.raster||customBackground.img,0,0,sw,sh,(width-dw)/2,(height-dh)/2,dw,dh);}
+   try{targetCtx.beginPath();targetCtx.rect(0,0,width,height);targetCtx.clip();targetCtx.drawImage(mediaSource(customBackground),0,0,sw,sh,(width-dw)/2,(height-dh)/2,dw,dh);}
    finally{targetCtx.restore();}
   }
  }
@@ -68,17 +75,21 @@ function drawFrame(targetCtx,width,height){
  try{
   // Contain sampling at the media boundary, including when a video uses a
   // hardware-backed surface. Never let edge pixels bleed across the canvas.
-  targetCtx.beginPath();targetCtx.rect(left,top,drawWidth,drawHeight);targetCtx.clip();
-  const media=photos[current],source=media.raster||media.img,{width:sourceWidth,height:sourceHeight}=dimensions(media);
+  targetCtx.beginPath();
+  const radius=Math.min(drawWidth,drawHeight)/2*(Number($('cornerRadius').value)||0)/100;
+  if(radius>0)targetCtx.roundRect(left,top,drawWidth,drawHeight,radius);
+  else targetCtx.rect(left,top,drawWidth,drawHeight);
+  targetCtx.clip();
+  const media=photos[current],source=mediaSource(media),{width:sourceWidth,height:sourceHeight}=dimensions(media);
   targetCtx.drawImage(source,0,0,sourceWidth,sourceHeight,left,top,drawWidth,drawHeight);
  }finally{targetCtx.restore();}
 }
 function draw(){drawFrame(ctx,canvas.width,canvas.height);}
 function advance(dt){
  if(dt<=0)return;
- if(customBackground?.kind==='video'&&!$('transparent').checked)customBackground.time=(customBackground.time+dt)%customBackground.img.duration;
+ if(customBackground&&!$('transparent').checked&&['video','gif'].includes(customBackground.kind))customBackground.time=(customBackground.time+dt)%(customBackground.kind==='gif'?customBackground.gifDuration:customBackground.img.duration);
  if(!photos.length)return;
- const active=photos[current];if(active.kind==='video')active.time=(active.time+dt)%active.img.duration;
+ const active=photos[current];if(['video','gif'].includes(active.kind))active.time=(active.time+dt)%(active.kind==='gif'?active.gifDuration:active.img.duration);
  const {w,h}=size(),speed=Number($('speed').value);
  x+=dx*speed*dt;y+=dy*speed*dt;
  let edgeX=null,edgeY=null;
@@ -128,7 +139,7 @@ function updateQuality(){
 function updateSourceInfo(){
  const desired=Number($('photoWidth').value);
  const enlarged=photos.filter(photo=>desired>dimensions(photo).width);
- $('sourceInfo').textContent=!photos.length?'Media digambar langsung dari sumber aslinya.':$('preventUpscale').checked?'Media tidak diperbesar melebihi resolusi aslinya. Media kecil bisa tampil lebih kecil.':enlarged.length?`${enlarged.length} media berpotensi diperbesar melewati ukuran asli sehingga bisa tampak buram.`:'Ukuran media masih dalam resolusi sumber.';
+ $('sourceInfo').textContent=!photos.length?'Foto besar disesuaikan hingga 1280 px untuk menghemat memori perangkat.':$('preventUpscale').checked?'Resolusi kerja foto maksimal 1280 px. Media tidak diperbesar melebihi ukuran kerja.':enlarged.length?`${enlarged.length} media berpotensi diperbesar melewati ukuran asli sehingga bisa tampak buram.`:'Ukuran media masih dalam resolusi sumber.';
 }
 $('preventUpscale').onchange=()=>{constrain();updateSourceInfo();draw();};
 function updateCanvas(){
@@ -145,7 +156,9 @@ function renderPhotos(){
  const list=$('photoList');list.replaceChildren();
  photos.forEach((photo,i)=>{
   const item=document.createElement('div');item.className='photo-item';
-  const thumbnail=document.createElement(photo.kind==='video'?'video':'img');thumbnail.src=photo.url;
+  const thumbnail=document.createElement(photo.raster?'canvas':photo.kind==='video'?'span':'img');
+  if(photo.raster){thumbnail.width=72;thumbnail.height=72;const tc=thumbnail.getContext('2d');tc.save();tc.beginPath();tc.rect(0,0,72,72);tc.clip();const d=dimensions(photo),scale=Math.min(72/d.width,72/d.height);tc.drawImage(photo.raster,0,0,d.width,d.height,(72-d.width*scale)/2,(72-d.height*scale)/2,d.width*scale,d.height*scale);tc.restore();}
+  else if(photo.kind==='video'){thumbnail.textContent='▶';}else thumbnail.src=photo.url;
   if(photo.kind==='video'){thumbnail.muted=true;thumbnail.preload='metadata';thumbnail.playsInline=true;}else thumbnail.alt=photo.name;
   item.title=`${i+1}. ${photo.kind==='video'?'Video':'Foto'}: ${photo.name}`;
   const number=document.createElement('span');number.className='media-number';number.textContent=i+1;
@@ -172,6 +185,7 @@ function shuffleOrder(){
 }
 $('shuffleOrder').onclick=shuffleOrder;
 function loadMedia(file){
+ if(file.type==='image/gif'||/\.gif$/i.test(file.name))return loadGif(file);
  const kind=file.type.startsWith('video/')?'video':file.type.startsWith('image/')?'image':null;
  if(!kind)return Promise.reject(Error(`Format tidak didukung: ${file.name}`));
  const url=URL.createObjectURL(file),img=kind==='video'?document.createElement('video'):new Image();
@@ -180,16 +194,17 @@ function loadMedia(file){
   const event=kind==='video'?'loadeddata':'load';
   const cleanup=()=>{clearTimeout(timer);img.removeEventListener(event,done);img.removeEventListener('error',fail);};
   let settled=false;
-  const fail=()=>{if(settled)return;settled=true;cleanup();disposeMedia(media);reject(Error(`Tidak dapat membaca: ${file.name}`));};
+  const fail=(error)=>{if(settled)return;settled=true;cleanup();disposeMedia(media);reject(error instanceof Error?error:Error(`Tidak dapat membaca: ${file.name}`));};
   const done=async()=>{
    if(settled)return;
    const {width,height}=dimensions(media);
    if(!width||!height||(kind==='video'&&(!Number.isFinite(img.duration)||img.duration<=0))){fail();return;}
    try{
     if(kind==='image')await normalizePhoto(file,media);
+    else {media.memoryBytes=width*height*8;checkBudget(media.memoryBytes);}
     if(settled)return;
     settled=true;cleanup();resolve(media);
-   }catch{fail();}
+   }catch(error){fail(error);}
   };
   const timer=setTimeout(fail,15000);
   img.addEventListener(event,done);img.addEventListener('error',fail);
@@ -203,7 +218,7 @@ async function addFiles(files){
  // A dropped FileList is only readable during the drop event. Keep a stable copy
  // before the first asynchronous read, and refresh the UI after each ready file.
  const batch=Array.from(files);
- if(recording||!batch.length)return;
+ if(recording||loadingFiles||!batch.length)return;
  loadingFiles++;renderPhotos();
  const errors=[];let completed=0;
  try{
@@ -213,7 +228,7 @@ async function addFiles(files){
     const media=await loadMedia(file);
     photos.push(media);renderPhotos();
     if(photos.length===1)randomize();
-   }catch{errors.push(file.name);}
+   }catch(error){errors.push(`${file.name}: ${error.message}`);}
    completed++;
   }
  }finally{
@@ -226,7 +241,7 @@ function updateBackgroundControls(){
  const disabled=recording||loadingFiles>0||$('transparent').checked;
  $('backgroundFile').disabled=disabled;$('backgroundFit').disabled=disabled||!customBackground;
  $('removeBackground').hidden=!customBackground;$('removeBackground').disabled=disabled;
- $('backgroundInfo').textContent=$('transparent').checked?'Background sendiri tidak ikut saat mode transparan aktif.':customBackground?`${customBackground.name} · ${customBackground.kind==='video'?'Video mengulang tanpa audio':'Foto'} · Proporsi asli dipertahankan.`:'Upload foto atau video untuk background. Video mengulang tanpa audio.';
+ $('backgroundInfo').textContent=$('transparent').checked?'Background sendiri tidak ikut saat mode transparan aktif.':customBackground?`${customBackground.name} · ${customBackground.kind==='video'?'Video mengulang tanpa audio':customBackground.kind==='gif'?'GIF animasi':'Foto'} · Proporsi asli dipertahankan.`:'Upload foto atau video untuk background. Video mengulang tanpa audio.';
 }
 $('backgroundFile').onchange=async e=>{
  const file=e.target.files[0];if(!file||recording||loadingFiles)return;
@@ -240,6 +255,7 @@ $('backgroundFile').onchange=async e=>{
 };
 $('removeBackground').onclick=()=>{if(recording||loadingFiles)return;if(customBackground)disposeMedia(customBackground);customBackground=null;updateBackgroundControls();draw();};
 $('backgroundFit').onchange=draw;
+$('cornerRadius').oninput=()=>{$('cornerValue').textContent=`${$('cornerRadius').value}%`;draw();};
 $('files').onchange=e=>addFiles(e.target.files);
 for(const type of ['dragenter','dragover'])$('dropZone').addEventListener(type,e=>{e.preventDefault();$('dropZone').classList.add('drag');});
 for(const type of ['dragleave','drop'])$('dropZone').addEventListener(type,e=>{e.preventDefault();$('dropZone').classList.remove('drag');});
@@ -266,7 +282,7 @@ function updateExportMode(){
  draw();
 }
 $('transparent').onchange=updateExportMode;
-function lock(value){for(const id of ['files','preset','encodingQuality','canvasWidth','canvasHeight','speed','photoWidth','photoWidthNumber','preventUpscale','background','transparent','duration','restart','play'])$(id).disabled=value;$('cancelExport').hidden=!value;renderPhotos();$('background').disabled=value||$('transparent').checked;}
+function lock(value){for(const id of ['files','preset','encodingQuality','canvasWidth','canvasHeight','speed','photoWidth','photoWidthNumber','preventUpscale','cornerRadius','background','transparent','duration','restart','play'])$(id).disabled=value;$('cancelExport').hidden=!value;renderPhotos();$('background').disabled=value||$('transparent').checked;}
 $('export').onclick=async()=>{
  if(!photos.length||recording||loadingFiles>0)return;
  if(typeof VideoEncoder==='undefined'||typeof Mediabunny==='undefined'){

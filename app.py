@@ -272,7 +272,7 @@ def extra_app_asset(app_name, filename='index.html'):
     folders = {'dvd': 'aplikasi dvd', 'excel': 'tex app excel'}
     folder = folders.get(app_name)
     allowed = {'index.html', 'style.css', 'app.js', 'edge.html', 'edge.js',
-               'vendor/mediabunny.js'} if app_name == 'dvd' else {'index.html', 'style.css', 'script.js'}
+               'vendor/mediabunny.js', 'vendor/gifuct.js', 'gif.js'} if app_name == 'dvd' else {'index.html', 'style.css', 'script.js'}
     if folder is None or filename not in allowed:
         return '', 404
     return send_from_directory(os.path.join(app.root_path, folder), filename)
