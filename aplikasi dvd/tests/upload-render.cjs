@@ -248,3 +248,20 @@ test('rounded clipping applies in both preview and exported frames',async()=>{
  assert.ok(app.state.rounded>0);const before=app.state.rounded;
  await app.run("$('export').onclick()");assert.ok(app.state.rounded>=before+300);
 });
+
+
+test('portrait media can upscale beyond working resolution to the canvas boundary',async()=>{
+ const app=setup();app.sandbox.files=[{name:'portrait.jpg',type:'image/jpeg'}];await app.run('addFiles(files)');
+ app.run("photos[0].raster.width=520;photos[0].raster.height=1040;$('preventUpscale').checked=false;$('preset').value='1080,1920';updateCanvas();$('photoWidthNumber').value='1080';$('photoWidthNumber').onchange();");
+ assert.equal(app.run('size().w'),960);assert.equal(app.run('size().h'),1920);
+ assert.match(app.get('sourceInfo').textContent,/960 × 1920/);
+ app.run('current=0;x=50;y=0;dx=1;dy=1;advance(1/60)');
+ assert.equal(app.run('bounces'),0);assert.equal(app.run('y'),0);
+ app.run("$('preventUpscale').checked=true;$('preventUpscale').onchange()");assert.equal(app.run('size().w'),520);
+});
+test('full-width portrait photo bounces vertically without spurious horizontal collisions',async()=>{
+ const app=setup();app.sandbox.files=[{name:'photo.jpg',type:'image/jpeg'}];await app.run('addFiles(files)');
+ app.run("photos[0].raster.width=640;photos[0].raster.height=640;$('preventUpscale').checked=false;$('preset').value='1080,1920';updateCanvas();$('photoWidthNumber').value='1080';$('photoWidthNumber').onchange();x=0;y=100;dx=1;dy=1;advance(1/60)");
+ assert.equal(app.run('size().w'),1080);assert.equal(app.run('bounces'),0);assert.equal(app.run('x'),0);
+ app.run('y=canvas.height-size().h-1;advance(1/60)');assert.equal(app.run('bounces'),1);
+});

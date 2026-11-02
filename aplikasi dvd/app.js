@@ -50,7 +50,7 @@ function mediaSource(media){if(media.kind==='gif')renderGif(media);return media.
 function size(){
   if (!photos.length) return {w:180,h:120};
   const {width:naturalWidth,height:naturalHeight}=dimensions(photos[current]), desired=Number($('photoWidth').value);
-  const scale=Math.min(desired/naturalWidth,canvas.width*.9/naturalWidth,canvas.height*.9/naturalHeight,$('preventUpscale').checked?1:Infinity);
+  const scale=Math.min(desired/naturalWidth,canvas.width/naturalWidth,canvas.height/naturalHeight,$('preventUpscale').checked?1:Infinity);
   return {w:naturalWidth*scale,h:naturalHeight*scale};
 }
 function constrain(){const {w,h}=size();x=Math.max(0,Math.min(x,canvas.width-w));y=Math.max(0,Math.min(y,canvas.height-h));}
@@ -93,9 +93,11 @@ function advance(dt){
  const {w,h}=size(),speed=Number($('speed').value);
  x+=dx*speed*dt;y+=dy*speed*dt;
  let edgeX=null,edgeY=null;
- if(x<=0&&dx<0){x=0;dx=Math.abs(dx);edgeX='left';}
+ if(w>=canvas.width-.001){x=0;}
+ else if(x<=0&&dx<0){x=0;dx=Math.abs(dx);edgeX='left';}
  else if(x+w>=canvas.width&&dx>0){x=canvas.width-w;dx=-Math.abs(dx);edgeX='right';}
- if(y<=0&&dy<0){y=0;dy=Math.abs(dy);edgeY='top';}
+ if(h>=canvas.height-.001){y=0;}
+ else if(y<=0&&dy<0){y=0;dy=Math.abs(dy);edgeY='top';}
  else if(y+h>=canvas.height&&dy>0){y=canvas.height-h;dy=-Math.abs(dy);edgeY='bottom';}
  if(edgeX||edgeY){
   const centerX=x+w/2,centerY=y+h/2;
@@ -108,7 +110,7 @@ function advance(dt){
   constrain();
   if(x<=0)dx=Math.abs(dx);else if(x+next.w>=canvas.width)dx=-Math.abs(dx);
   if(y<=0)dy=Math.abs(dy);else if(y+next.h>=canvas.height)dy=-Math.abs(dy);
-  bounces++;$('bounceCount').textContent=`${bounces} pantulan`;
+  bounces++;$('bounceCount').textContent=`${bounces} pantulan`;updateSourceInfo();
  }
 }
 async function frame(time){
@@ -137,9 +139,11 @@ function updateQuality(){
  $('qualityInfo').textContent=$('encodingQuality').value==='maximum'?'Utamakan detail (quantizer 18 jika didukung), dengan bitrate tinggi sebagai cadangan. File bisa lebih besar. Kompresi video tetap dapat mengubah sedikit detail.':`Target ${(bitrate/1000000).toFixed(1)} Mbps · Perkiraan ±${(bitrate*duration/8/1000000).toFixed(1)} MB. Dimensi dan 60 fps tetap sama; ukuran file aktual bisa berbeda.`;
 }
 function updateSourceInfo(){
+ const actual=size();
+ const sizeNote=photos.length?`Ukuran tampil media aktif: ${Math.round(actual.w)} × ${Math.round(actual.h)} px. `:'';
  const desired=Number($('photoWidth').value);
  const enlarged=photos.filter(photo=>desired>dimensions(photo).width);
- $('sourceInfo').textContent=!photos.length?'Foto besar disesuaikan hingga 1280 px untuk menghemat memori perangkat.':$('preventUpscale').checked?'Resolusi kerja foto maksimal 1280 px. Media tidak diperbesar melebihi ukuran kerja.':enlarged.length?`${enlarged.length} media berpotensi diperbesar melewati ukuran asli sehingga bisa tampak buram.`:'Ukuran media masih dalam resolusi sumber.';
+ $('sourceInfo').textContent=sizeNote+(!photos.length?'Foto besar disesuaikan hingga 1280 px untuk menghemat memori perangkat.':$('preventUpscale').checked?'Resolusi kerja foto maksimal 1280 px. Media tidak diperbesar melebihi ukuran kerja.':enlarged.length?`${enlarged.length} media berpotensi diperbesar melewati ukuran asli sehingga bisa tampak buram.`:'Ukuran media masih dalam resolusi sumber.');
 }
 $('preventUpscale').onchange=()=>{constrain();updateSourceInfo();draw();};
 function updateCanvas(){
