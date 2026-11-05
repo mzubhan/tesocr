@@ -11,6 +11,7 @@ import urllib.request
 from docx import Document
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
 from docx.text.paragraph import Paragraph
 from docx.shared import Cm, Pt
 import base64
@@ -888,9 +889,47 @@ def generate_permohonan_rutin(payload: Dict[str, Any]) -> Tuple[bytes, str, str]
     return bio.getvalue(), filename, mime
 
 
+def _remove_table_borders(doc: Document) -> None:
+    """Override inherited table borders as well as direct cell/row borders."""
+    for table in doc.tables:
+        properties = table._tbl.tblPr
+        borders = properties.find(qn('w:tblBorders'))
+        if borders is None:
+            borders = OxmlElement('w:tblBorders')
+            properties.append(borders)
+        for edge in ('top', 'left', 'bottom', 'right', 'insideH', 'insideV', 'start', 'end'):
+            border = borders.find(qn(f'w:{edge}'))
+            if border is None:
+                border = OxmlElement(f'w:{edge}')
+                borders.append(border)
+            border.set(qn('w:val'), 'nil')
+    for borders in doc.element.xpath('.//w:tblBorders | .//w:tcBorders'):
+        for border in borders:
+            border.set(qn('w:val'), 'nil')
+
+
+def _remove_unused_report_employees(doc: Document, count: int) -> None:
+    """A template row can hold several employees; preserve every used slot."""
+    unused = set(_unused_employee_slots(count))
+    for table in doc.tables:
+        for row in list(table.rows):
+            slots = {int(slot) for slot in re.findall(r'PEG(\d+)', ' '.join(cell.text for cell in row.cells))}
+            if slots and slots.issubset(unused):
+                table._tbl.remove(row._tr)
+                continue
+            for cell in row.cells:
+                for paragraph in list(cell.paragraphs):
+                    slots = {int(slot) for slot in re.findall(r'PEG(\d+)', paragraph.text)}
+                    if slots and slots.issubset(unused):
+                        cell._tc.remove(paragraph._p)
+                if not cell.paragraphs:
+                    cell.add_paragraph()
+
+
 def generate_nota_dinas(payload: Dict[str, Any]) -> Tuple[bytes, str, str]:
     template_path = 'kode_files/kode_nota_dinas.docx'
     doc = Document(template_path)
+    _remove_table_borders(doc)
     # Semua output: Times New Roman, 11pt
     set_document_font(doc, 'Times New Roman', 11)
 
@@ -993,11 +1032,7 @@ def generate_laporan_perjalanan(payload: Dict[str, Any]) -> Tuple[bytes, str, st
     tempat = payload.get('tempat') or ' '
     employees = _get_limited_employees(payload)
 
-    n = len(employees)
-    tokens_to_remove = []
-    for i in _unused_employee_slots(n):
-        tokens_to_remove += [f'PEG{i}', f'NIPPEG{i}']
-    remove_table_rows_with_tokens(doc, tokens_to_remove)
+    _remove_unused_report_employees(doc, len(employees))
 
     mapping: Dict[str, str] = {
         'DASAR1': dasar,
